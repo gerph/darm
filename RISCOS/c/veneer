@@ -1,0 +1,81 @@
+/*******************************************************************
+ * File:        veneer
+ * Purpose:     Debugger module interface
+ * Author:      Gerph
+ ******************************************************************/
+
+#include <stdlib.h>
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
+
+#include "kernel.h"
+#include "modhead.h"
+
+#include "rodis.h"
+
+/***************************************************************************
+ * Function:     Mod_Init
+ * Description:  Initialise the module, setting up vectors, callbacks and
+ *               any other parts of the system necessary for the module to
+ *               function.
+ * Parameters:   tail        = pointer to command line (control terminated)
+ *               podule_base = address of podule module was started from, or
+ *                             NULL if none
+ *               pw          = private word for module
+ * On exit:      Return NULL for successful initialisation, or a pointer to
+ *               an error block if the module could not start properly.
+ **************************************************************************/
+_kernel_oserror *Mod_Init(const char *tail, int podule_base, void *pw)
+{
+    printf("Module Debugger initialised\n");
+    return NULL;
+}
+
+
+/***************************************************************************
+ * Function:     Mod_Final
+ * Description:  Finalise the module, shutting down any systems necessary,
+ *               freeing vectors and releasing workspace
+ * Parameters:   fatal       = fatality indicator; 1 if fatal, 0 if
+ *                             reinitialising
+ *               podule_base = address of podule module was started from, or
+ *                             NULL if none
+ *               pw          = private word for module
+ * On exit:      Return 0 for successful finalisation, or a pointer to an
+ *               error block if module was not shutdown properly.
+ **************************************************************************/
+_kernel_oserror *Mod_Final(int fatal, int podule_base, void *pw)
+{
+    printf("Module Debugger dying\n");
+    return NULL;
+}
+
+
+_kernel_oserror *SWI_Disassemble(int number, _kernel_swi_regs *r, void *pw)
+{
+    uint32_t word = (uint32_t)r->r[0];
+    uint32_t addr = (uint32_t)r->r[1];
+    const  char *str;
+
+    str = disassemble_word(word, addr, 0);
+
+    r->r[1] = (int)str;
+    r->r[2] = strlen(str);
+    return NULL;
+}
+
+_kernel_oserror *SWI_DisassembleThumb(int number, _kernel_swi_regs *r,
+                                      void *pw)
+{
+    uint32_t word = (uint32_t)r->r[0];
+    uint32_t addr = (uint32_t)r->r[1];
+    const char *str;
+
+    str = disassemble_word(word, addr, 1);
+
+    r->r[1] = (int)str;
+    r->r[2] = strlen(str);
+    return NULL;
+}
+

@@ -1,0 +1,23 @@
+/*******************************************************************
+ * File:        rodis
+ * Purpose:     RISCOS Disassembly veneers for other libraries
+ * Author:      Gerph
+ * Date:        16 Jun 2024
+ ******************************************************************/
+
+#ifndef RODIS_H
+#define RODIS_H
+
+#include <stdint.h>
+
+/*************************************************** Gerph *********
+ Function:      lookup_swi
+ Description:   Convert SWI number to a string
+ Parameters:    swinum = the number to convert
+ Returns:       pointer to static string, or NULL if not decodable
+ ******************************************************************/
+const char *lookup_swi(uint32_t swinum);
+
+const char *disassemble_word(uint32_t word, uint32_t address, int thumb);
+
+#endif
