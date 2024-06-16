@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 
 #include "darm.h"
 
@@ -67,6 +68,14 @@ void disassemble_file(char *filename)
                 mnemonic[0] = 's';
                 mnemonic[1] = 'w';
                 mnemonic[2] = 'i';
+            }
+
+            {
+                char *s;
+                for (s = mnemonic; *s; s++)
+                {
+                    *s = toupper(*s);
+                }
             }
 
             printf("%-8s%s\n", mnemonic, &str.total[strlen(mnemonic) + 1]);
