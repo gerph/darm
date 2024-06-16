@@ -114,6 +114,9 @@ def type_encoding_enum(enumname, arr):
             '\n    // '.join(textwrap.wrap(', '.join(affects), 74)) + '\n' +
             '    T_%s,' % name)
 
+    if text[-1][-1] == ',':
+        text[-1] = text[-1][:-1]
+
     return 'typedef enum _%s_t {\n%s\n} %s_t;\n' % (enumname,
                                                     '\n\n'.join(text),
                                                     enumname)
@@ -703,6 +706,10 @@ if __name__ == '__main__':
     # print all instruction labels
     print(instruction_names_enum(open('instructions.txt')))
     count = len(instruction_names(open('instructions.txt')))
+    # Remember the mapping of the instruction labels (for C89 compiler :-( )
+    instr_index_to_name = dict(enumerate(instruction_names(open('instructions.txt'))))
+    instr_name_to_index = dict((name, index) for (index, name) in instr_index_to_name.items())
+    # ^^^ Instruction name -> index
     print('extern const char *darm_mnemonics[%d];' % count)
     print('extern const char *darm_enctypes[%d];' % len(instr_types))
     print('extern const char *darm_registers[16];')
@@ -1010,9 +1017,17 @@ if __name__ == '__main__':
     print(type_lookup_table('type_pusr', *t_pusr))
 
     lines = []
-    for instr, fmtstr in fmtstrs.items():
-        fmtstr = ', '.join('"%s"' % x for x in set(fmtstr))
-        lines.append('    [I_%s] = {%s},' % (instr, fmtstr))
+    #for instr, fmtstr in fmtstrs.items():
+    #    fmtstr = ', '.join('"%s"' % x for x in set(fmtstr))
+    #    lines.append('    [I_%s] = {%s},' % (instr, fmtstr))
+    #print('const char *armv7_format_strings[%d][3] = {' % instrcnt)
+    #print('\n'.join(sorted(lines)))
+    #print('};')
+    for index, instr_name in sorted(instr_index_to_name.items()):
+        fmtstr_list_for_name = fmtstrs.get(instr_name, [])
+        fmtstr = ', '.join('"%s"' % x for x in set(fmtstr_list_for_name))
+        lines.append('    {%s}, /* %s */' % (fmtstr, instr_name))
+
     print('const char *armv7_format_strings[%d][3] = {' % instrcnt)
-    print('\n'.join(sorted(lines)))
+    print('\n'.join(lines))
     print('};')

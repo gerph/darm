@@ -93,6 +93,18 @@ void darm_init(darm_t *d)
 
 int darm_disasm(darm_t *d, uint16_t w, uint16_t w2, uint32_t addr)
 {
+    // magic table constructed based on section A6.1 of the ARM manual
+    static uint8_t is_thumb2[0x20] = {
+#ifdef __riscos
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1
+#else
+        [/* b11101 */ 31 - 2] = 1,
+        [/* b11110 */ 31 - 1] = 1,
+        [/* b11111 */ 31 - 0] = 1,
+#endif
+    };
+
     // if the least significant bit is not set, then this is
     // an ARMv7 instruction
     if((addr & 1) == 0) {
@@ -105,13 +117,6 @@ int darm_disasm(darm_t *d, uint16_t w, uint16_t w2, uint32_t addr)
             return 2;
         }
     }
-
-    // magic table constructed based on section A6.1 of the ARM manual
-    static uint8_t is_thumb2[0x20] = {
-        [b11101] = 1,
-        [b11110] = 1,
-        [b11111] = 1,
-    };
 
     // check whether this is a Thumb or Thumb2 instruction
     if(is_thumb2[w >> 11] == 0) {
@@ -136,10 +141,6 @@ int darm_disasm(darm_t *d, uint16_t w, uint16_t w2, uint32_t addr)
 
 int darm_str(const darm_t *d, darm_str_t *str)
 {
-    if(d->instr == I_INVLD || d->instr >= ARRAYSIZE(darm_mnemonics)) {
-        return -1;
-    }
-
     // the format string index
     uint32_t idx = 0;
 
@@ -150,16 +151,34 @@ int darm_str(const darm_t *d, darm_str_t *str)
     uint32_t arg = 0;
 
     // pointers to the arguments
-    char *args[] = {
-        str->arg[0], str->arg[1], str->arg[2],
-        str->arg[3], str->arg[4], str->arg[5],
-    };
+    char *args[6];
 
     // ptr to the output mnemonic
-    char *mnemonic = str->mnemonic;
+    char *mnemonic;
+
+    char *shift;
+
+    const char **ptrs;
+
+    char ch;
+
+    if(d->instr == I_INVLD || d->instr >= ARRAYSIZE(darm_mnemonics)) {
+        return -1;
+    }
+
+    // initialise the args (was in the assignment initialisation)
+    args[0] = str->arg[0];
+    args[1] = str->arg[1];
+    args[2] = str->arg[2];
+    args[3] = str->arg[3];
+    args[4] = str->arg[4];
+    args[5] = str->arg[5];
+
+    // ptr to the output mnemonic
+    mnemonic = str->mnemonic;
     APPEND(mnemonic, darm_mnemonic_name(d->instr));
 
-    char *shift = str->shift;
+    shift = str->shift;
 
     // there are a couple of instructions in the Thumb instruction set which
     // do not have an equivalent in ARMv7, hence they'll not have an ARMv7
@@ -182,10 +201,10 @@ int darm_str(const darm_t *d, darm_str_t *str)
         break;
     }
 
-    const char **ptrs = armv7_format_strings[d->instr];
+    ptrs = armv7_format_strings[d->instr];
     if(ptrs[0] == NULL) return -1;
 
-    for (char ch; (ch = ptrs[idx][off]) != 0; off++) {
+    for (ch; (ch = ptrs[idx][off]) != 0; off++) {
         switch (ch) {
         case 's':
             if(d->S == B_SET) {
@@ -439,18 +458,20 @@ int darm_str(const darm_t *d, darm_str_t *str)
             if(d->instr == I_BLX && d->H == B_INVLD) break;
 
             // check whether the immediate is negative
-            int32_t imm = d->imm;
-            if(imm < 0 && imm >= -0x1000) {
-                APPEND(args[arg], "#+-");
-                imm = -imm;
+            {
+                int32_t imm = d->imm;
+                if(imm < 0 && imm >= -0x1000) {
+                    APPEND(args[arg], "#+-");
+                    imm = -imm;
+                }
+                else if(d->U == B_UNSET) {
+                    APPEND(args[arg], "#+-");
+                }
+                else {
+                    APPEND(args[arg], "#+");
+                }
+                args[arg] += _append_imm(args[arg], imm);
             }
-            else if(d->U == B_UNSET) {
-                APPEND(args[arg], "#+-");
-            }
-            else {
-                APPEND(args[arg], "#+");
-            }
-            args[arg] += _append_imm(args[arg], imm);
             continue;
 
         case 'M':
@@ -463,12 +484,14 @@ int darm_str(const darm_t *d, darm_str_t *str)
                 APPEND(args[arg], ", ");
                 APPEND(args[arg], darm_register_name(d->Rm));
 
-                const char *type; uint32_t imm;
-                if(darm_immshift_decode(d, &type, &imm) == 0) {
-                    APPEND(args[arg], ", ");
-                    APPEND(args[arg], type);
-                    APPEND(args[arg], " #");
-                    args[arg] += _utoa(imm, args[arg], 10);
+                {
+                    const char *type; uint32_t imm;
+                    if(darm_immshift_decode(d, &type, &imm) == 0) {
+                        APPEND(args[arg], ", ");
+                        APPEND(args[arg], type);
+                        APPEND(args[arg], " #");
+                        args[arg] += _utoa(imm, args[arg], 10);
+                    }
                 }
             }
             else if(d->imm != 0) {
@@ -541,22 +564,26 @@ finalize:
     *mnemonic = *shift = 0;
     *args[0] = *args[1] = *args[2] = *args[3] = *args[4] = *args[5] = 0;
 
-    char *instr = str->total;
-    APPEND(instr, str->mnemonic);
+    {
+        char *instr = str->total;
+        int i;
+        APPEND(instr, str->mnemonic);
 
-    for (int i = 0; i < 6 && args[i] != str->arg[i]; i++) {
-        if(i != 0) *instr++ = ',';
-        *instr++ = ' ';
-        APPEND(instr, str->arg[i]);
+        for (i = 0; i < 6 && args[i] != str->arg[i]; i++) {
+            if(i != 0) *instr++ = ',';
+            *instr++ = ' ';
+            APPEND(instr, str->arg[i]);
+        }
+
+        if(shift != str->shift) {
+            *instr++ = ',';
+            *instr++ = ' ';
+            APPEND(instr, str->shift);
+        }
+
+        *instr = 0;
     }
 
-    if(shift != str->shift) {
-        *instr++ = ',';
-        *instr++ = ' ';
-        APPEND(instr, str->shift);
-    }
-
-    *instr = 0;
     return 0;
 }
 
@@ -569,7 +596,8 @@ int darm_str2(const darm_t *d, darm_str_t *str, int lowercase)
     if(lowercase != 0) {
         // just lowercase the entire object, including null-bytes
         char *buf = (char *) str;
-        for (uint32_t i = 0; i < sizeof(darm_str_t); i++) {
+        uint32_t i;
+        for (i = 0; i < sizeof(darm_str_t); i++) {
             buf[i] = tolower(buf[i]);
         }
     }

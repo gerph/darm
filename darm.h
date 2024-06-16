@@ -67,7 +67,7 @@ typedef enum _darm_cond_t {
 typedef enum _darm_shift_type_t {
     S_LSL = 0, S_LSR = 1, S_ASR = 2, S_ROR = 3,
 
-    S_INVLD = -1,
+    S_INVLD = -1
 } darm_shift_type_t;
 
 typedef enum _darm_option_t {
@@ -80,7 +80,7 @@ typedef enum _darm_option_t {
     O_OSH   = 3,  // b0011
     O_OSHST = 2,  // b0010
 
-    O_INVLD = -1,
+    O_INVLD = -1
 } darm_option_t;
 
 typedef struct _darm_t {

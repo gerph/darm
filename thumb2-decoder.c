@@ -139,11 +139,11 @@ darm_instr_t thumb2_decode_instruction(darm_t *d, uint16_t w, uint16_t w2)
 
 darm_instr_t thumb2_load_store_multiple(darm_t *d, uint16_t w, uint16_t w2)
 {
-    (void) w2;
-
     uint32_t op = (w >> 7) & b11;
     uint32_t L = (w >> 4) & b1;
     uint32_t W_Rn = ((w >> 1) & 0x10) | (w & b1111);
+
+    (void) w2;
 
     d->instr_type = T_THUMB2_RN_REG;
     d->instr_imm_type = T_THUMB2_NO_IMM;
@@ -278,10 +278,10 @@ darm_instr_t thumb2_load_store_dual(darm_t *d, uint16_t w, uint16_t w2)
 
 darm_instr_t thumb2_move_shift(darm_t *d, uint16_t w, uint16_t w2)
 {
-    (void) w;
-
     uint32_t type = (w2>>4) & b11;
     uint32_t imm3_imm2 = ((w2>>10) & 0x1C) | ((w2>>6) & b11);
+
+    (void) w;
 
     d->instr_type = T_THUMB2_RD_RM_REG;
     d->instr_imm_type = T_THUMB2_IMM2_IMM3;
@@ -548,10 +548,10 @@ darm_instr_t thumb2_plain_immediate(darm_t *d, uint16_t w, uint16_t w2)
 
 darm_instr_t thumb2_proc_state(darm_t *d, uint16_t w, uint16_t w2)
 {
-    (void) d; (void) w;
-
     uint32_t op1 = (w2 >> 8) & b111;
     uint32_t op2 = w2 & 0xff;
+
+    (void) d; (void) w;
 
     if(op1 == 0) {
         switch (op2) {
@@ -585,8 +585,9 @@ darm_instr_t thumb2_proc_state(darm_t *d, uint16_t w, uint16_t w2)
 
 darm_instr_t thumb2_misc_ctrl(darm_t *d, uint16_t w, uint16_t w2)
 {
-    (void) d; (void) w;
     uint32_t op = (w2 >> 4) & b111;
+
+    (void) d; (void) w;
 
     switch (op) {
     case 0: case 1:
@@ -1334,10 +1335,10 @@ darm_instr_t thumb2_data_reg(darm_t *d, uint16_t w, uint16_t w2)
 darm_instr_t thumb2_nm_decoder(darm_t *d, uint16_t w, uint16_t w2,
     darm_instr_t i1, darm_instr_t i2, darm_instr_t i3, darm_instr_t i4)
 {
-    (void) d; (void) w;
-
     uint32_t n = (w2 >> 5) & 1;
     uint32_t m = (w2 >> 4) & 1;
+
+    (void) d; (void) w;
 
     if(n == 1) {
         if(m == 1) {

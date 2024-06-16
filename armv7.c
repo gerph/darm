@@ -375,77 +375,81 @@ static int armv7_disas_cond(darm_t *d, uint32_t w)
     // instructions have various masks; of bits 20..27 bit 24 is set and bits
     // 21..22 specify which instruction this is, furthermore, bits 4..7
     // represent the value 0b0101
-    const uint32_t mask2 = (b11111001 << 20) | (b1111 << 4);
-    if((w & mask2) == ((1 << 24) | (b0101 << 4))) {
-        d->instr = type_sat_instr_lookup[(w >> 21) & b11];
-        d->instr_type = T_ARM_SAT;
-        d->Rn = (w >> 16) & b1111;
-        d->Rd = (w >> 12) & b1111;
-        d->Rm = w & b1111;
-        return 0;
+    {
+        const uint32_t mask2 = (b11111001 << 20) | (b1111 << 4);
+        if((w & mask2) == ((1 << 24) | (b0101 << 4))) {
+            d->instr = type_sat_instr_lookup[(w >> 21) & b11];
+            d->instr_type = T_ARM_SAT;
+            d->Rn = (w >> 16) & b1111;
+            d->Rd = (w >> 12) & b1111;
+            d->Rm = w & b1111;
+            return 0;
+        }
     }
     // handle packing, unpacking, saturation, and reversal instructions, these
     // instructions have the 4th bit set and bits 23..27 represent 0b01101
-    const uint32_t mask3 = (b11111 << 23) | (1 << 4);
-    if((w & mask3) == ((b01101 << 23) | (1 << 4))) {
-        // some instructions are already handled elsewhere (namely, PKH, SEL,
-        // REV, REV16, RBIT, and REVSH)
-        uint32_t op1 = (w >> 20) & b111;
-        uint32_t A = (w >> 16) & b1111;
-        uint32_t op2 = (w >> 5) & b111;
+    {
+        const uint32_t mask3 = (b11111 << 23) | (1 << 4);
+        if((w & mask3) == ((b01101 << 23) | (1 << 4))) {
+            // some instructions are already handled elsewhere (namely, PKH, SEL,
+            // REV, REV16, RBIT, and REVSH)
+            uint32_t op1 = (w >> 20) & b111;
+            uint32_t A = (w >> 16) & b1111;
+            uint32_t op2 = (w >> 5) & b111;
 
-        d->instr_type = T_ARM_PUSR;
+            d->instr_type = T_ARM_PUSR;
 
-        // the (SX|UX)T(A)(B|H)(16) instructions
-        // op1 represents the upper three bits, and A = 0b1111 represents
-        if(op2 == b011) {
-            // the lower bit
-            d->instr = type_pusr_instr_lookup[(op1 << 1) | (A == b1111)];
-            if(d->instr != I_INVLD) {
-                d->Rd = (w >> 12) & b1111;
-                d->Rm = w & b1111;
+            // the (SX|UX)T(A)(B|H)(16) instructions
+            // op1 represents the upper three bits, and A = 0b1111 represents
+            if(op2 == b011) {
+                // the lower bit
+                d->instr = type_pusr_instr_lookup[(op1 << 1) | (A == b1111)];
+                if(d->instr != I_INVLD) {
+                    d->Rd = (w >> 12) & b1111;
+                    d->Rm = w & b1111;
 
-                // rotation is shifted to the left by three, so we do this
-                // directly in our shift as well
-                d->rotate = (w >> 7) & b11000;
+                    // rotation is shifted to the left by three, so we do this
+                    // directly in our shift as well
+                    d->rotate = (w >> 7) & b11000;
 
-                // if A is not 0b1111, then A represents the Rn operand
-                if(A != b1111) {
-                    d->Rn = A;
+                    // if A is not 0b1111, then A represents the Rn operand
+                    if(A != b1111) {
+                        d->Rn = A;
+                    }
+                    return 0;
                 }
+            }
+
+            // SSAT
+            if((op1 & b010) == b010 && (op2 & 1) == 0) {
+                // if the upper bit is set, then it's USAT, otherwise SSAT
+                d->instr = (op1 >> 2) ? I_USAT : I_SSAT;
+                d->imm = (w >> 16) & b11111;
+                d->I = B_SET;
+                // signed saturate adds one to the immediate
+                if(d->instr == I_SSAT) {
+                    d->imm++;
+                }
+                d->Rd = (w >> 12) & b1111;
+                d->shift = (w >> 7) & b11111;
+                d->shift_type = (w >> 5) & b11;
+                d->Rn = w & b1111;
                 return 0;
             }
-        }
 
-        // SSAT
-        if((op1 & b010) == b010 && (op2 & 1) == 0) {
-            // if the upper bit is set, then it's USAT, otherwise SSAT
-            d->instr = (op1 >> 2) ? I_USAT : I_SSAT;
-            d->imm = (w >> 16) & b11111;
-            d->I = B_SET;
-            // signed saturate adds one to the immediate
-            if(d->instr == I_SSAT) {
-                d->imm++;
+            // SSAT16 and USAT16
+            if((op1 == b010 || op1 == b110) && op2 == b001) {
+                d->instr = op1 == b010 ? I_SSAT16 : I_USAT16;
+                d->imm = (w >> 16) & b1111;
+                d->I = B_SET;
+                // signed saturate 16 adds one to the immediate
+                if(d->instr == I_SSAT16) {
+                    d->imm++;
+                }
+                d->Rd = (w >> 12) & b1111;
+                d->Rn = w & b1111;
+                return 0;
             }
-            d->Rd = (w >> 12) & b1111;
-            d->shift = (w >> 7) & b11111;
-            d->shift_type = (w >> 5) & b11;
-            d->Rn = w & b1111;
-            return 0;
-        }
-
-        // SSAT16 and USAT16
-        if((op1 == b010 || op1 == b110) && op2 == b001) {
-            d->instr = op1 == b010 ? I_SSAT16 : I_USAT16;
-            d->imm = (w >> 16) & b1111;
-            d->I = B_SET;
-            // signed saturate 16 adds one to the immediate
-            if(d->instr == I_SSAT16) {
-                d->imm++;
-            }
-            d->Rd = (w >> 12) & b1111;
-            d->Rn = w & b1111;
-            return 0;
         }
     }
 
@@ -923,12 +927,13 @@ const char *darm_condition_meaning_fp(darm_cond_t cond)
 
 darm_cond_t darm_condition_index(const char *condition_code)
 {
+    uint32_t i;
     if(condition_code == NULL) return -1;
 
     // the "AL" condition flag
     if(condition_code[0] == 0) return C_AL;
 
-    for (uint32_t i = 0; i < ARRAYSIZE(g_condition_codes); i++) {
+    for (i = 0; i < ARRAYSIZE(g_condition_codes); i++) {
         if(!strcmp(condition_code, g_condition_codes[i].mnemonic_extension)) {
             return i;
         }

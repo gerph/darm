@@ -595,8 +595,9 @@ char *darm_thumb2_str(darm_t *d)
 {
     int index=0, offset=0;
     static char stringbuf[512];
+    int i;
 
-    for (int i = 0; i < THUMB2_INSTRUCTION_COUNT; i++) {
+    for (i = 0; i < THUMB2_INSTRUCTION_COUNT; i++) {
         if(d->instr == thumb2_instr_labels[i]) {
             index = i;
             break;
