@@ -10,6 +10,8 @@
 #include <string.h>
 #include <ctype.h>
 
+#include "swis.h"
+
 #include "darm.h"
 
 static darm_t d;
@@ -19,6 +21,23 @@ void error(char *message)
 {
     printf("ERROR: %s\n", message);
     exit(1);
+}
+
+
+/*************************************************** Gerph *********
+ Function:      lookup_swi
+ Description:   Convert SWI number to a string
+ Parameters:    swinum = the number to convert
+ Returns:       pointer to static string, or NULL if not decodable
+ ******************************************************************/
+const char *lookup_swi(uint32_t swinum)
+{
+    static char buffer[128];
+    _kernel_oserror *err;
+    err = _swix(OS_SWINumberToString, _INR(0, 2), swinum, buffer, sizeof(buffer));
+    if (err)
+        return NULL;
+    return buffer;
 }
 
 
@@ -43,12 +62,19 @@ const char *disassemble_word(uint32_t word, uint32_t address, int thumb)
         darm_str2(&d, &str, 1) == 0) {
 
         char mnemonic[12];
+        const char *args = &str.total[strlen(str.mnemonic) + 1];
         strcpy(mnemonic, str.mnemonic);
         if (strncmp(mnemonic, "svc", 3) == 0)
         {
+            const char *swiname;
             mnemonic[0] = 's';
             mnemonic[1] = 'w';
             mnemonic[2] = 'i';
+
+            /* The SWI number is in the d.imm parameter */
+            swiname = lookup_swi(d.imm);
+            if (swiname != NULL)
+                args = swiname;
         }
 
         {
@@ -59,7 +85,7 @@ const char *disassemble_word(uint32_t word, uint32_t address, int thumb)
             }
         }
 
-        sprintf(buffer, "%-8s%s", mnemonic, &str.total[strlen(mnemonic) + 1]);
+        sprintf(buffer, "%-8s%s", mnemonic, args);
     }
     else
     {
