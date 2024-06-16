@@ -22,6 +22,54 @@ void error(char *message)
 }
 
 
+const char *disassemble_word(uint32_t word, uint32_t address, int thumb)
+{
+    int ok;
+    static char buffer[128];
+
+    ok = 0;
+    if (thumb)
+    {
+        if (darm_thumb_disasm(&d, (uint16_t)word) == 0)
+            ok = 1;
+    }
+    else
+    {
+        if (darm_armv7_disasm(&d, word) == 0)
+            ok = 1;
+    }
+
+    if (ok &&
+        darm_str2(&d, &str, 1) == 0) {
+
+        char mnemonic[12];
+        strcpy(mnemonic, str.mnemonic);
+        if (strncmp(mnemonic, "svc", 3) == 0)
+        {
+            mnemonic[0] = 's';
+            mnemonic[1] = 'w';
+            mnemonic[2] = 'i';
+        }
+
+        {
+            char *s;
+            for (s = mnemonic; *s; s++)
+            {
+                *s = toupper(*s);
+            }
+        }
+
+        sprintf(buffer, "%-8s%s", mnemonic, &str.total[strlen(mnemonic) + 1]);
+    }
+    else
+    {
+        sprintf(buffer, "Undefined instruction");
+    }
+
+    return buffer;
+}
+
+
 void disassemble_file(char *filename, int thumb)
 {
     FILE *f;
@@ -38,16 +86,15 @@ void disassemble_file(char *filename, int thumb)
 
     while (!feof(f))
     {
-        int ok;
         int instsize = thumb ? 2 : 4;
         if (fread(&word, instsize, 1, f) != 1)
             break;
 
         printf("%08lx : ", address);
         if (thumb)
-            prinf("%04lx : ", word);
+            printf("%04lx : ", word);
         else
-            prinf("%08lx : ", word);
+            printf("%08lx : ", word);
 
         /* Write out the textual form of the word */
         {
@@ -64,46 +111,12 @@ void disassemble_file(char *filename, int thumb)
         }
         printf(" : ");
 
-        ok = 0;
-        if (thumb)
         {
-            if (darm_thumb_disasm(&d, (uint16_t)word) == 0)
-                ok = 1;
-        }
-        else
-        {
-            if (darm_armv7_disasm(&d, word) == 0)
-                ok = 1;
+            const char *dis = disassemble_word(word, address, thumb);
+            printf("%s\n", dis);
         }
 
-        if (ok &&
-            darm_str2(&d, &str, 1) == 0) {
-
-            char mnemonic[12];
-            strcpy(mnemonic, str.mnemonic);
-            if (strncmp(mnemonic, "svc", 3) == 0)
-            {
-                mnemonic[0] = 's';
-                mnemonic[1] = 'w';
-                mnemonic[2] = 'i';
-            }
-
-            {
-                char *s;
-                for (s = mnemonic; *s; s++)
-                {
-                    *s = toupper(*s);
-                }
-            }
-
-            printf("%-8s%s\n", mnemonic, &str.total[strlen(mnemonic) + 1]);
-        }
-        else
-        {
-            printf("Undefined instruction\n");
-        }
-
-        address += 4;
+        address += instsize;
     }
 }
 
