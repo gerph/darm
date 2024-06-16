@@ -22,7 +22,7 @@ void error(char *message)
 }
 
 
-void disassemble_file(char *filename)
+void disassemble_file(char *filename, int thumb)
 {
     FILE *f;
     uint32_t word;
@@ -38,17 +38,23 @@ void disassemble_file(char *filename)
 
     while (!feof(f))
     {
-        if (fread(&word, 4, 1, f) != 1)
+        int ok;
+        int instsize = thumb ? 2 : 4;
+        if (fread(&word, instsize, 1, f) != 1)
             break;
 
-        printf("%08lx : %08lx : ", address, word);
+        printf("%08lx : ", address);
+        if (thumb)
+            prinf("%04lx : ", word);
+        else
+            prinf("%08lx : ", word);
 
         /* Write out the textual form of the word */
         {
             int i;
-            for (i=0; i<4; i++)
+            for (i=0; i<instsize; i++)
             {
-                char value = (word >> (8*i)) & 0xFF;
+                char value = (char)(word >> (8*i)) & 0xFF;
                 if (value < 32)
                     value = '.';
                 else if (value == 127)
@@ -58,7 +64,19 @@ void disassemble_file(char *filename)
         }
         printf(" : ");
 
-        if (darm_armv7_disasm(&d, word) == 0 &&
+        ok = 0;
+        if (thumb)
+        {
+            if (darm_thumb_disasm(&d, (uint16_t)word) == 0)
+                ok = 1;
+        }
+        else
+        {
+            if (darm_armv7_disasm(&d, word) == 0)
+                ok = 1;
+        }
+
+        if (ok &&
             darm_str2(&d, &str, 1) == 0) {
 
             char mnemonic[12];
@@ -93,14 +111,23 @@ void disassemble_file(char *filename)
 int main(int argc, char *argv[])
 {
     char *filename;
+    int thumb = 0;
 
-    if (argc != 2)
+    if (argc != 2 && argc != 3)
     {
         printf("Syntax: %s <filename>\n", argv[0]);
         exit(1);
     }
 
-    filename = argv[1];
+    if (strcmp(argv[1], "-thumb") == 0)
+    {
+        thumb = 1;
+        filename = argv[2];
+    }
+    else
+    {
+        filename = argv[1];
+    }
 
-    disassemble_file(filename);
+    disassemble_file(filename, thumb);
 }
