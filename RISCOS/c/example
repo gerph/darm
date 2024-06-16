@@ -3,7 +3,8 @@
 
 int main()
 {
-    darm_t d; darm_str_t str;
+    darm_t d;
+    darm_str_t str;
 
     if(darm_armv7_disasm(&d, 0x42424242) == 0 &&
             darm_str2(&d, &str, 1) == 0) {

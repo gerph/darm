@@ -1,0 +1,88 @@
+/*******************************************************************
+ * File:        disfile
+ * Purpose:     Disassemble a single file
+ * Author:      Gerph
+ * Date:        16 Jun 2024
+ ******************************************************************/
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "darm.h"
+
+static darm_t d;
+static darm_str_t str;
+
+void error(char *message)
+{
+    printf("ERROR: %s\n", message);
+    exit(1);
+}
+
+
+void disassemble_file(char *filename)
+{
+    FILE *f;
+    uint32_t word;
+    uint32_t address;
+
+    f = fopen(filename, "rb");
+    if (f == NULL)
+        error("File not found");
+
+    address = 0;
+    if (strstr(filename, ",ff8") != NULL)
+        address = 0x8000;
+
+    while (!feof(f))
+    {
+        if (fread(&word, 4, 1, f) != 1)
+            break;
+
+        printf("%08lx : %08lx : ", address, word);
+
+        /* Write out the textual form of the word */
+        {
+            int i;
+            for (i=0; i<4; i++)
+            {
+                char value = (word >> (8*i)) & 0xFF;
+                if (value < 32)
+                    value = '.';
+                else if (value == 127)
+                    value = '.';
+                printf("%c", value);
+            }
+        }
+        printf(" : ");
+
+        if (darm_armv7_disasm(&d, word) == 0 &&
+            darm_str2(&d, &str, 1) == 0) {
+
+            printf("%s\n", str.total);
+        }
+        else
+        {
+            printf("Undefined instruction\n");
+        }
+
+        address += 4;
+    }
+}
+
+
+int main(int argc, char *argv[])
+{
+    char *filename;
+
+    if (argc != 2)
+    {
+        printf("Syntax: %s <filename>\n", argv[0]);
+        exit(1);
+    }
+
+    filename = argv[1];
+
+    disassemble_file(filename);
+}
