@@ -60,7 +60,16 @@ void disassemble_file(char *filename)
         if (darm_armv7_disasm(&d, word) == 0 &&
             darm_str2(&d, &str, 1) == 0) {
 
-            printf("%s\n", str.total);
+            char mnemonic[12];
+            strcpy(mnemonic, str.mnemonic);
+            if (strncmp(mnemonic, "svc", 3) == 0)
+            {
+                mnemonic[0] = 's';
+                mnemonic[1] = 'w';
+                mnemonic[2] = 'i';
+            }
+
+            printf("%-8s%s\n", mnemonic, &str.total[strlen(mnemonic) + 1]);
         }
         else
         {
