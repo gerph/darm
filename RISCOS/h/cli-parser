@@ -1,0 +1,52 @@
+/*******************************************************************
+ * File:        cli-parser
+ * Purpose:     Parsing command line arguments for the debugger commands
+ * Author:      Gerph
+ * Date:        30 June 2024
+ ******************************************************************/
+
+#ifndef CLI_PARSER_H
+#define CLI_PARSER_H
+
+#include <stdint.h>
+
+
+typedef enum arch_e {
+    arch_arm32,
+    arch_thumb
+} arch_t;
+
+typedef struct parsed_arch_s {
+    arch_t arch;
+    /* FIXME: Include a disassembly function pointer */
+    int inst_width_min;
+    int inst_width_max;
+} parsed_arch_t;
+
+
+typedef struct memory_params_s {
+    uint32_t baseaddr;
+    uint32_t endaddr;
+} memory_params_t;
+
+
+/*************************************************** Gerph *********
+ Function:      parse_architecture
+ Description:   Parse the  architecture string specified.
+ Parameters:    args-> the command string (ctrl terminated)
+                parsed_arch-> the structure to fill in.
+ Returns:       pointer to the next character in the command string
+ ******************************************************************/
+const char *parse_architecture(const char *args, parsed_arch_t *parsed_arch);
+
+/*************************************************** Gerph *********
+ Function:      parsed_memory_params
+ Description:   Parse the memory paramemters shared by *Memory, *MemoryI.
+ Parameters:    args_string-> the command string (control terminated)
+                memory_params-> the structure to fill in
+                default_size = number of bytes to use if no size/end is given.
+ Returns:       pointer to the next character in the command string
+ ******************************************************************/
+const char *parse_memory_params(const char *arg_string, memory_params_t *memory_params, int default_size);
+
+#endif

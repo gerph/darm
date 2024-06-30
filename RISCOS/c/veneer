@@ -4,6 +4,7 @@
  * Author:      Gerph
  ******************************************************************/
 
+#include <ctype.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
@@ -13,6 +14,12 @@
 #include "modhead.h"
 
 #include "rodis.h"
+#include "cli-parser.h"
+
+
+/* Number of instructions to disassemble if not supplied */
+#define MEMORYI_DEFAULT_SIZE (16)
+
 
 /***************************************************************************
  * Function:     Mod_Init
@@ -50,6 +57,61 @@ _kernel_oserror *Mod_Final(int fatal, int podule_base, void *pw)
     printf("Module Debugger dying\n");
     return NULL;
 }
+
+
+/***************************************************************************
+ * Description:  Star command and help request handler routines.
+ * Parameters:   arg_string = pointer to argument string (control
+ *                            terminated), or output buffer
+ *               argc       = number of arguments passed
+ *               number     = command number (see CMD_* definitions below)
+ *               pw         = private word for module
+ * On exit:      If number indicates a help entry:
+ *                 To output, assemble zero terminated output into
+ *                 arg_string, and return help_PRINT_BUFFER to print it.
+ *                 To stay silent, return NULL.
+ *                 To given an error, return an error pointer.
+ *                 [In this case, you need to cast the 'const' away]
+ *               If number indicates a configure option:
+ *                 If arg_string is arg_STATUS, then print status, otherwise
+ *                 use argc and arg_string to set option.
+ *                 Return NULL for no error.
+ *                 Return one of the four error codes below (configure_*)
+ *                 for a generic error message.
+ *                 Return an error pointer for a custom error.
+ *               If number indicates a command entry:
+ *                 Execute the command given by number, and arg_string.
+ *                 Return NULL on success,
+ *                 Return a pointer to an error block on failure.
+ **************************************************************************/
+_kernel_oserror *Mod_Command(const char *arg_string, int argc, int number,
+                             void *pw)
+{
+    return NULL;
+}
+
+
+/* *MemoryI [T|A] <addr1|reg1> [[+|-] <addr2|reg2> [+ <addr3|reg3>]] */
+_kernel_oserror *Cmd_MemoryI(const char *arg_string, int argc, int number,
+                             void *pw)
+{
+    int thumb = 0;
+    parsed_arch_t parsed_arch;
+    memory_params_t memory_params;
+    int inst_width;
+
+    arg_string = parse_architecture(arg_string, &parsed_arch);
+
+    inst_width = parsed_arch.inst_width_max;
+    printf("Arg_string = %s\n", arg_string);
+    printf("inst_width = %i\n", inst_width);
+    printf("arch = %i\n", parsed_arch.arch);
+
+    arg_string = parse_memory_params(arg_string, &memory_params, MEMORYI_DEFAULT_SIZE * inst_width);
+
+    return NULL;
+}
+
 
 
 _kernel_oserror *SWI_Disassemble(int number, _kernel_swi_regs *r, void *pw)

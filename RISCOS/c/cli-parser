@@ -1,0 +1,69 @@
+/*******************************************************************
+ * File:        cli-parser
+ * Purpose:     Parsing command line arguments for the debugger commands
+ * Author:      Gerph
+ * Date:        30 June 2024
+ ******************************************************************/
+
+#include <ctype.h>
+#include <stdlib.h>
+
+#include "cli-parser.h"
+
+/*************************************************** Gerph *********
+ Function:      parse_architecture
+ Description:   Parse the  architecture string specified.
+ Parameters:    args-> the command string (ctrl terminated)
+                parsed_arch-> the structure to fill in.
+ Returns:       pointer to the next character in the command string
+ ******************************************************************/
+const char *parse_architecture(const char *args, parsed_arch_t *parsed_arch)
+{
+    char first;
+    while (*args == ' ')
+        args ++;
+
+    if (*args > ' ' && (args[1] == ' ' || args[1] < ' '))
+        first = toupper(*args);
+    else
+        first = 0;
+
+    switch (first)
+    {
+        case 'T':
+            parsed_arch->arch = arch_thumb;
+            parsed_arch->inst_width_min = 2;
+            parsed_arch->inst_width_max = 2;
+            args++;
+            break;
+
+        default:
+        case 'A':
+            parsed_arch->arch = arch_arm32;
+            parsed_arch->inst_width_min = 4;
+            parsed_arch->inst_width_max = 4;
+            if (first == 'A')
+                args++;
+            break;
+    }
+
+    return args;
+}
+
+/*************************************************** Gerph *********
+ Function:      parsed_memory_params
+ Description:   Parse the memory paramemters shared by *Memory, *MemoryI.
+ Parameters:    args_string-> the command string (control terminated)
+                memory_params-> the structure to fill in
+                default_size = number of bytes to use if no size/end is given.
+ Returns:       pointer to the next character in the command string
+ ******************************************************************/
+const char *parse_memory_params(const char *arg_string, memory_params_t *memory_params, int default_size)
+{
+    uint32_t baseaddr;
+    uint32_t endaddr;
+    uint32_t offset;
+    int negative;
+
+    return NULL;
+}
