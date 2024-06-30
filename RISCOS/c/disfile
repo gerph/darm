@@ -13,6 +13,8 @@
 #include "swis.h"
 
 #include "rodis.h"
+#include "cli-parser.h"
+
 
 void error(char *message)
 {
@@ -21,8 +23,18 @@ void error(char *message)
 }
 
 
+int get_filetype(const char *filename)
+{
+    int type;
+    _kernel_oserror *err;
+    err = _swix(OS_File, _INR(0, 1)|_OUT(6), 20, filename, &type);
+    if (err)
+        return -1;
+    return type;
+}
 
-void disassemble_file(char *filename, int thumb)
+
+void disassemble_file(char *filename, int thumb, uint32_t start, uint32_t end)
 {
     FILE *f;
     uint32_t word;
@@ -33,10 +45,26 @@ void disassemble_file(char *filename, int thumb)
         error("File not found");
 
     address = 0;
-    if (strstr(filename, ",ff8") != NULL)
+    if (strstr(filename, ",ff8") != NULL ||
+        get_filetype(filename) == 0xFF8)
         address = 0x8000;
 
-    while (!feof(f))
+    if (start < address)
+    {
+        start = address;
+    }
+    if (end < address)
+    {
+        goto exit;
+    }
+
+    if (start != address)
+    {
+        fseek(f, start - address, SEEK_SET);
+        address = start;
+    }
+
+    while (!feof(f) && address < end)
     {
         int instsize = thumb ? 2 : 4;
         if (fread(&word, instsize, 1, f) != 1)
@@ -70,6 +98,9 @@ void disassemble_file(char *filename, int thumb)
 
         address += instsize;
     }
+
+exit:
+    fclose(f);
 }
 
 
@@ -77,10 +108,12 @@ int main(int argc, char *argv[])
 {
     char *filename;
     int thumb = 0;
+    uint32_t start = 0;
+    uint32_t end = 0xFFFFFFFF;
 
-    if (argc != 2 && argc != 3)
+    if (argc < 2 | argc > 5)
     {
-        printf("Syntax: %s <filename>\n", argv[0]);
+        printf("Syntax: %s <filename> [<address> [[+|-]<address> [[+|-]<address>]", argv[0]);
         exit(1);
     }
 
@@ -88,11 +121,56 @@ int main(int argc, char *argv[])
     {
         thumb = 1;
         filename = argv[2];
+        argv+=3;
+        argc-=3;
     }
     else
     {
         filename = argv[1];
+        argv+=2;
+        argc-=2;
     }
 
-    disassemble_file(filename, thumb);
+    /* Construct a big string from the following arguments */
+    {
+        static char cmdline[256] = "";
+        while (argc)
+        {
+            char *str = *argv;
+
+            strcat(cmdline, str);
+            strcat(cmdline, " ");
+
+            argc--;
+            argv++;
+        }
+
+        {
+            /* Parse the parameters into addresses */
+            parsed_arch_t parsed_arch;
+            memory_params_t memory_params;
+            int inst_width;
+            int success;
+            const char *arg_string = cmdline;
+
+            arg_string = parse_architecture(arg_string, &parsed_arch);
+
+            inst_width = parsed_arch.inst_width_max;
+            printf("Arg_string = %s\n", arg_string);
+            printf("inst_width = %i\n", inst_width);
+            printf("arch = %i\n", parsed_arch.arch);
+
+            success = parse_memory_params(arg_string, &memory_params, 0x8000000);
+            if (!success)
+            {
+                printf("Failed\n");
+                exit(1);
+            }
+
+            start = memory_params.base_addr;
+            end = memory_params.end_addr;
+        }
+    }
+
+    disassemble_file(filename, thumb, start, end);
 }
