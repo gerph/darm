@@ -36,6 +36,7 @@ LIBS       = ${CLIB} <Lib$Dir>.DARM.o.libDARM
 OBJS       = o.disfile \
 		     o.rodis \
 		     o.cli-parser \
+		     o.memoryi \
 
 # Space separated list of XML files for building documentation.
 #DOCSRC = <prm-in-xml-sources>

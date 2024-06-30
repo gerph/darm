@@ -1,0 +1,105 @@
+/*******************************************************************
+ * File:        memoryi
+ * Purpose:     Disassembly of memory or file objects
+ * Author:      Gerph
+ * Date:        30 June 2024
+ ******************************************************************/
+
+#include <string.h>
+#include <stdio.h>
+#include <stdint.h>
+#include "swis.h"
+
+#include "memoryi.h"
+#include "rodis.h"
+
+
+int get_filetype(const char *filename)
+{
+    int type;
+    _kernel_oserror *err;
+    err = _swix(OS_File, _INR(0, 1)|_OUT(6), 20, filename, &type);
+    if (err)
+        return -1;
+    return type;
+}
+
+
+/*************************************************** Gerph *********
+ Function:      disassemble_file
+ Description:   Disassemble a file and print to the screen.
+ Parameters:    filename-> the file to disassemble
+                thumb = 1 if we're disassembling thumb
+                start = start address
+                end = end address (or 0xFFFFFFFF for entire file)
+ Returns:       none
+ ******************************************************************/
+void disassemble_file(char *filename, int thumb, uint32_t start, uint32_t end)
+{
+    FILE *f;
+    uint32_t word;
+    uint32_t address;
+
+    f = fopen(filename, "rb");
+    if (f == NULL)
+        error("File not found");
+
+    address = 0;
+    if (strstr(filename, ",ff8") != NULL ||
+        get_filetype(filename) == 0xFF8)
+        address = 0x8000;
+
+    if (start < address)
+    {
+        start = address;
+    }
+    if (end < address)
+    {
+        goto exit;
+    }
+
+    if (start != address)
+    {
+        fseek(f, start - address, SEEK_SET);
+        address = start;
+    }
+
+    while (!feof(f) && address < end)
+    {
+        int instsize = thumb ? 2 : 4;
+        if (fread(&word, instsize, 1, f) != 1)
+            break;
+
+        printf("%08lx : ", address);
+        if (thumb)
+            printf("%04lx : ", word);
+        else
+            printf("%08lx : ", word);
+
+        /* Write out the textual form of the word */
+        {
+            int i;
+            for (i=0; i<instsize; i++)
+            {
+                char value = (char)(word >> (8*i)) & 0xFF;
+                if (value < 32)
+                    value = '.';
+                else if (value == 127)
+                    value = '.';
+                printf("%c", value);
+            }
+        }
+        printf(" : ");
+
+        {
+            const char *dis = disassemble_word(word, address, thumb);
+            printf("%s\n", dis);
+        }
+
+        address += instsize;
+    }
+
+exit:
+    fclose(f);
+}
+

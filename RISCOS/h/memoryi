@@ -1,0 +1,27 @@
+/*******************************************************************
+ * File:        memoryi
+ * Purpose:     Disassembly of memory or file objects
+ * Author:      Gerph
+ * Date:        30 June 2024
+ ******************************************************************/
+
+#ifndef MEMORYI_H
+#define MEMORYI_H
+
+#include <stdint.h>
+
+int get_filetype(const char *filename);
+
+
+/*************************************************** Gerph *********
+ Function:      disassemble_file
+ Description:   Disassemble a file and print to the screen.
+ Parameters:    filename-> the file to disassemble
+                thumb = 1 if we're disassembling thumb
+                start = start address
+                end = end address (or 0xFFFFFFFF for entire file)
+ Returns:       none
+ ******************************************************************/
+void disassemble_file(char *filename, int thumb, uint32_t start, uint32_t end);
+
+#endif

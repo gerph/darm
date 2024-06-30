@@ -14,93 +14,13 @@
 
 #include "rodis.h"
 #include "cli-parser.h"
+#include "memoryi.h"
 
 
 void error(char *message)
 {
     printf("ERROR: %s\n", message);
     exit(1);
-}
-
-
-int get_filetype(const char *filename)
-{
-    int type;
-    _kernel_oserror *err;
-    err = _swix(OS_File, _INR(0, 1)|_OUT(6), 20, filename, &type);
-    if (err)
-        return -1;
-    return type;
-}
-
-
-void disassemble_file(char *filename, int thumb, uint32_t start, uint32_t end)
-{
-    FILE *f;
-    uint32_t word;
-    uint32_t address;
-
-    f = fopen(filename, "rb");
-    if (f == NULL)
-        error("File not found");
-
-    address = 0;
-    if (strstr(filename, ",ff8") != NULL ||
-        get_filetype(filename) == 0xFF8)
-        address = 0x8000;
-
-    if (start < address)
-    {
-        start = address;
-    }
-    if (end < address)
-    {
-        goto exit;
-    }
-
-    if (start != address)
-    {
-        fseek(f, start - address, SEEK_SET);
-        address = start;
-    }
-
-    while (!feof(f) && address < end)
-    {
-        int instsize = thumb ? 2 : 4;
-        if (fread(&word, instsize, 1, f) != 1)
-            break;
-
-        printf("%08lx : ", address);
-        if (thumb)
-            printf("%04lx : ", word);
-        else
-            printf("%08lx : ", word);
-
-        /* Write out the textual form of the word */
-        {
-            int i;
-            for (i=0; i<instsize; i++)
-            {
-                char value = (char)(word >> (8*i)) & 0xFF;
-                if (value < 32)
-                    value = '.';
-                else if (value == 127)
-                    value = '.';
-                printf("%c", value);
-            }
-        }
-        printf(" : ");
-
-        {
-            const char *dis = disassemble_word(word, address, thumb);
-            printf("%s\n", dis);
-        }
-
-        address += instsize;
-    }
-
-exit:
-    fclose(f);
 }
 
 
@@ -156,10 +76,6 @@ int main(int argc, char *argv[])
             arg_string = parse_architecture(arg_string, &parsed_arch);
 
             inst_width = parsed_arch.inst_width_max;
-            printf("Arg_string = %s\n", arg_string);
-            printf("inst_width = %i\n", inst_width);
-            printf("arch = %i\n", parsed_arch.arch);
-
             success = parse_memory_params(arg_string, &memory_params, 0x8000000);
             if (!success)
             {
