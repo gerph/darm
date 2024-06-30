@@ -25,8 +25,8 @@ typedef struct parsed_arch_s {
 
 
 typedef struct memory_params_s {
-    uint32_t baseaddr;
-    uint32_t endaddr;
+    uint32_t base_addr;
+    uint32_t end_addr;
 } memory_params_t;
 
 
@@ -45,8 +45,8 @@ const char *parse_architecture(const char *args, parsed_arch_t *parsed_arch);
  Parameters:    args_string-> the command string (control terminated)
                 memory_params-> the structure to fill in
                 default_size = number of bytes to use if no size/end is given.
- Returns:       pointer to the next character in the command string
+ Returns:       1 for success, 0 for failure
  ******************************************************************/
-const char *parse_memory_params(const char *arg_string, memory_params_t *memory_params, int default_size);
+int parse_memory_params(const char *arg_string, memory_params_t *memory_params, int default_size);
 
 #endif
