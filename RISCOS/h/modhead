@@ -81,6 +81,8 @@ _kernel_oserror *Mod_Command(const char *arg_string, int argc, int number,
                              void *pw);
 _kernel_oserror *Cmd_MemoryI(const char *arg_string, int argc, int number,
                              void *pw);
+_kernel_oserror *Cmd_DumpI(const char *arg_string, int argc, int number,
+                           void *pw);
 #define help_PRINT_BUFFER		((_kernel_oserror *) arg_string)
 #define arg_CONFIGURE_SYNTAX		((char *) 0)
 #define arg_STATUS			((char *) 1)
@@ -92,6 +94,8 @@ _kernel_oserror *Cmd_MemoryI(const char *arg_string, int argc, int number,
 /* Command numbers, as passed to the command handler functions (see above) */
 #undef CMD_MemoryI
 #define CMD_MemoryI (0)
+#undef CMD_DumpI
+#define CMD_DumpI (1)
 
 
 /***************************************************************************

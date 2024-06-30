@@ -15,6 +15,7 @@
 
 #include "rodis.h"
 #include "cli-parser.h"
+#include "memoryi.h"
 
 
 /* Number of instructions to disassemble if not supplied */
@@ -119,6 +120,49 @@ _kernel_oserror *Cmd_MemoryI(const char *arg_string, int argc, int number,
 
     return NULL;
 }
+
+
+_kernel_oserror *Cmd_DumpI(const char *arg_string, int argc, int number,
+                           void *pw)
+{
+    disassemble_error_t err;
+    parsed_arch_t parsed_arch;
+    memory_params_t memory_params;
+    int inst_width;
+    int success;
+    const char *filename;
+
+    /* Skip leading spaces */
+    while (*arg_string == ' ')
+        arg_string++;
+
+    filename = arg_string;
+
+    /* Find the end of the filename parameter */
+    while (*arg_string > ' ')
+        arg_string++;
+
+    arg_string = parse_architecture(arg_string, &parsed_arch);
+
+    inst_width = parsed_arch.inst_width_max;
+
+    success = parse_memory_params(arg_string, &memory_params, 0x80000000);
+    if (!success)
+    {
+        printf("Failed\n");
+        return NULL;
+    }
+
+    err = disassemble_file(filename,
+                           (parsed_arch.arch == arch_thumb) ? 1 : 0,
+                           memory_params.base_addr,
+                           memory_params.end_addr);
+    if (err == diserror_file_not_found)
+        printf("File not found");
+
+    return NULL;
+}
+
 
 
 

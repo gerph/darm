@@ -208,7 +208,11 @@ command-keyword-table: Mod_Command
    MemoryI(min-args: 1, max-args: 6, add-syntax:,
            invalid-syntax: "Syntax: *MemoryI [T|A] <addr1|reg1> [[+|-] <addr2|reg2> [+ <addr3|reg3>]]",
            help-text: "*MemoryI disassembles memory into instructions (ARM, Thumb).",
-           handler: Cmd_MemoryI)
+           handler: Cmd_MemoryI),
+   DumpI(min-args: 1, max-args: 7, add-syntax:,
+         invalid-syntax: "Syntax: *DumpI <file> [T|A] <addr1|reg1> [[+|-] <addr2|reg2> [+ <addr3|reg3>]]",
+         help-text: "*DumpI disassembles a file into instructions (ARM, Thumb).",
+         handler: Cmd_DumpI)
 
 ; The module service entry will be called to process services. You are
 ; strongly recommended to include the numbers of the services you wish to

@@ -27,7 +27,7 @@ int get_filetype(const char *filename);
                 end = end address (or 0xFFFFFFFF for entire file)
  Returns:       error code
  ******************************************************************/
-disassemble_error_t disassemble_file(char *filename, int thumb,
+disassemble_error_t disassemble_file(const char *filename, int thumb,
                                      uint32_t start, uint32_t end);
 
 #endif

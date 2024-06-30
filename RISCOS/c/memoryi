@@ -24,6 +24,21 @@ int get_filetype(const char *filename)
     return type;
 }
 
+int is_escape_pressed(void)
+{
+    _kernel_oserror *err;
+    uint32_t flags;
+    err = _swix(OS_ReadEscapeState, _OUT(_FLAGS), &flags);
+    if (err)
+        return 1;
+    return (flags & _C) ? 1 : 0;
+}
+
+void clear_escape(void)
+{
+    _swix(OS_Byte, _IN(0), 124); /* Clear escape state */
+}
+
 
 /*************************************************** Gerph *********
  Function:      disassemble_file
@@ -34,7 +49,7 @@ int get_filetype(const char *filename)
                 end = end address (or 0xFFFFFFFF for entire file)
  Returns:       error code
  ******************************************************************/
-disassemble_error_t disassemble_file(char *filename, int thumb,
+disassemble_error_t disassemble_file(const char *filename, int thumb,
                                      uint32_t start, uint32_t end)
 {
     FILE *f;
@@ -98,6 +113,12 @@ disassemble_error_t disassemble_file(char *filename, int thumb,
         }
 
         address += instsize;
+
+        if (is_escape_pressed())
+        {
+            clear_escape();
+            break;
+        }
     }
 
 exit:
