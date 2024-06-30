@@ -96,6 +96,7 @@ _kernel_oserror *Mod_Command(const char *arg_string, int argc, int number,
 _kernel_oserror *Cmd_MemoryI(const char *arg_string, int argc, int number,
                              void *pw)
 {
+    disassemble_error_t err;
     parsed_arch_t parsed_arch;
     memory_params_t memory_params;
     int inst_width;
@@ -104,10 +105,6 @@ _kernel_oserror *Cmd_MemoryI(const char *arg_string, int argc, int number,
     arg_string = parse_architecture(arg_string, &parsed_arch);
 
     inst_width = parsed_arch.inst_width_max;
-    printf("Arg_string = %s\n", arg_string);
-    printf("inst_width = %i\n", inst_width);
-    printf("arch = %i\n", parsed_arch.arch);
-
     success = parse_memory_params(arg_string, &memory_params, MEMORYI_DEFAULT_SIZE * inst_width);
     if (!success)
     {
@@ -115,8 +112,9 @@ _kernel_oserror *Cmd_MemoryI(const char *arg_string, int argc, int number,
         return NULL;
     }
 
-    printf("Base address = &%08lx\n", memory_params.base_addr);
-    printf("End address = &%08lx\n", memory_params.end_addr);
+    err = disassemble_memory((parsed_arch.arch == arch_thumb) ? 1 : 0,
+                             memory_params.base_addr,
+                             memory_params.end_addr);
 
     return NULL;
 }

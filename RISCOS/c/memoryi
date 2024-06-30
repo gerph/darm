@@ -71,6 +71,19 @@ int file_read_block(data_accessor_t *handle, uint32_t address, uint8_t *data, in
     return read;
 }
 
+typedef struct memory_accessor_s {
+    data_accessor_t data;
+} memory_accessor_t;
+
+int memory_read_block(data_accessor_t *handle, uint32_t address, uint8_t *data, int size)
+{
+    memory_accessor_t *mem = (memory_accessor_t *)handle;
+
+    memcpy(data, (void*)address, size);
+    return size;
+}
+
+
 /*************************************************** Gerph *********
  Function:      disassemble_stuff
  Description:   Disassemble some data through the accessor and print to the screen.
@@ -190,5 +203,26 @@ disassemble_error_t disassemble_file(const char *filename, int thumb,
     err = disassemble_stuff((data_accessor_t*)&file, thumb, start, end);
 
     fclose(f);
+    return err;
+}
+
+
+/*************************************************** Gerph *********
+ Function:      disassemble_memory
+ Description:   Disassemble a memory and print to the screen.
+ Parameters:    thumb = 1 if we're disassembling thumb
+                start = start address
+                end = end address (or 0xFFFFFFFF for entire file)
+ Returns:       error code
+ ******************************************************************/
+disassemble_error_t disassemble_memory(int thumb,
+                                       uint32_t start, uint32_t end)
+{
+    disassemble_error_t err;
+    memory_accessor_t mem;
+
+    mem.data.read_block = memory_read_block;
+
+    err = disassemble_stuff((data_accessor_t*)&mem, thumb, start, end);
     return err;
 }

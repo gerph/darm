@@ -30,4 +30,15 @@ int get_filetype(const char *filename);
 disassemble_error_t disassemble_file(const char *filename, int thumb,
                                      uint32_t start, uint32_t end);
 
+/*************************************************** Gerph *********
+ Function:      disassemble_memory
+ Description:   Disassemble a memory and print to the screen.
+ Parameters:    thumb = 1 if we're disassembling thumb
+                start = start address
+                end = end address (or 0xFFFFFFFF for entire file)
+ Returns:       error code
+ ******************************************************************/
+disassemble_error_t disassemble_memory(int thumb,
+                                       uint32_t start, uint32_t end);
+
 #endif
