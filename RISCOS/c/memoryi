@@ -40,30 +40,51 @@ void clear_escape(void)
 }
 
 
+typedef struct data_accessor_s data_accessor_t;
+
+struct data_accessor_s {
+    int (*read_block)(data_accessor_t *handle, uint32_t address, uint8_t *data, int size);
+};
+
+typedef struct file_accessor_s {
+    data_accessor_t data;
+    FILE *f;
+    uint32_t current_ptr;
+    uint32_t baseaddr;
+    uint32_t filesize;
+} file_accessor_t;
+
+int file_read_block(data_accessor_t *handle, uint32_t address, uint8_t *data, int size)
+{
+    file_accessor_t *file = (file_accessor_t *)handle;
+    uint32_t file_ptr = address - file->baseaddr;
+    int read;
+
+    if (file->current_ptr != file_ptr)
+    {
+        fseek(file->f, file_ptr, SEEK_SET);
+        file->current_ptr = file_ptr;
+    }
+    read = fread(data, 1, size, file->f);
+    file->current_ptr += read;
+
+    return read;
+}
+
 /*************************************************** Gerph *********
- Function:      disassemble_file
- Description:   Disassemble a file and print to the screen.
- Parameters:    filename-> the file to disassemble
+ Function:      disassemble_stuff
+ Description:   Disassemble some data through the accessor and print to the screen.
+ Parameters:    accessor -> the data accessor for this object to dump
                 thumb = 1 if we're disassembling thumb
                 start = start address
                 end = end address (or 0xFFFFFFFF for entire file)
  Returns:       error code
  ******************************************************************/
-disassemble_error_t disassemble_file(const char *filename, int thumb,
-                                     uint32_t start, uint32_t end)
+disassemble_error_t disassemble_stuff(data_accessor_t *accessor, int thumb,
+                                      uint32_t start, uint32_t end)
 {
-    FILE *f;
     uint32_t word;
-    uint32_t address;
-
-    f = fopen(filename, "rb");
-    if (f == NULL)
-        return diserror_file_not_found;
-
-    address = 0;
-    if (strstr(filename, ",ff8") != NULL ||
-        get_filetype(filename) == 0xFF8)
-        address = 0x8000;
+    uint32_t address = 0;
 
     if (start < address)
     {
@@ -76,14 +97,13 @@ disassemble_error_t disassemble_file(const char *filename, int thumb,
 
     if (start != address)
     {
-        fseek(f, start - address, SEEK_SET);
         address = start;
     }
 
-    while (!feof(f) && address < end)
+    while (address < end)
     {
         int instsize = thumb ? 2 : 4;
-        if (fread(&word, instsize, 1, f) != 1)
+        if (accessor->read_block(accessor, address, (uint8_t*)&word, instsize) != instsize)
             break;
 
         printf("%08lx : ", address);
@@ -122,7 +142,53 @@ disassemble_error_t disassemble_file(const char *filename, int thumb,
     }
 
 exit:
-    fclose(f);
     return diserror_none;
 }
 
+
+/*************************************************** Gerph *********
+ Function:      disassemble_file
+ Description:   Disassemble a file and print to the screen.
+ Parameters:    filename-> the file to disassemble
+                thumb = 1 if we're disassembling thumb
+                start = start address
+                end = end address (or 0xFFFFFFFF for entire file)
+ Returns:       error code
+ ******************************************************************/
+disassemble_error_t disassemble_file(const char *filename, int thumb,
+                                     uint32_t start, uint32_t end)
+{
+    disassemble_error_t err;
+    FILE *f;
+    file_accessor_t file;
+    uint32_t address;
+
+    f = fopen(filename, "rb");
+    if (f == NULL)
+        return diserror_file_not_found;
+
+    address = 0;
+    if (strstr(filename, ",ff8") != NULL ||
+        get_filetype(filename) == 0xFF8)
+        address = 0x8000;
+
+    file.f = f;
+    file.data.read_block = file_read_block;
+    file.baseaddr = address;
+
+    /* Find the file length */
+    fseek(f, 0, SEEK_END);
+    file.filesize = ftell(f);
+    fseek(f, 0, SEEK_SET);
+    file.current_ptr = 0;
+
+    if (file.baseaddr + end > file.filesize)
+        end = file.filesize - file.baseaddr;
+    if (file.baseaddr + start > file.filesize)
+        start = file.filesize - file.baseaddr;
+
+    err = disassemble_stuff((data_accessor_t*)&file, thumb, start, end);
+
+    fclose(f);
+    return err;
+}
