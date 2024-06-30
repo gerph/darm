@@ -10,6 +10,11 @@
 
 #include <stdint.h>
 
+typedef enum disassemble_error_e {
+    diserror_none,
+    diserror_file_not_found
+} disassemble_error_t;
+
 int get_filetype(const char *filename);
 
 
@@ -20,8 +25,9 @@ int get_filetype(const char *filename);
                 thumb = 1 if we're disassembling thumb
                 start = start address
                 end = end address (or 0xFFFFFFFF for entire file)
- Returns:       none
+ Returns:       error code
  ******************************************************************/
-void disassemble_file(char *filename, int thumb, uint32_t start, uint32_t end);
+disassemble_error_t disassemble_file(char *filename, int thumb,
+                                     uint32_t start, uint32_t end);
 
 #endif

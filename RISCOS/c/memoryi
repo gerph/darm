@@ -32,9 +32,10 @@ int get_filetype(const char *filename)
                 thumb = 1 if we're disassembling thumb
                 start = start address
                 end = end address (or 0xFFFFFFFF for entire file)
- Returns:       none
+ Returns:       error code
  ******************************************************************/
-void disassemble_file(char *filename, int thumb, uint32_t start, uint32_t end)
+disassemble_error_t disassemble_file(char *filename, int thumb,
+                                     uint32_t start, uint32_t end)
 {
     FILE *f;
     uint32_t word;
@@ -42,7 +43,7 @@ void disassemble_file(char *filename, int thumb, uint32_t start, uint32_t end)
 
     f = fopen(filename, "rb");
     if (f == NULL)
-        error("File not found");
+        return diserror_file_not_found;
 
     address = 0;
     if (strstr(filename, ",ff8") != NULL ||
@@ -101,5 +102,6 @@ void disassemble_file(char *filename, int thumb, uint32_t start, uint32_t end)
 
 exit:
     fclose(f);
+    return diserror_none;
 }
 
