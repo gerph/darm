@@ -13,6 +13,9 @@
 #include "swis.h"
 
 #include "rodis.h"
+#include "cli-parser.h"
+#include "memoryi.h"
+
 
 void error(char *message)
 {
@@ -21,66 +24,17 @@ void error(char *message)
 }
 
 
-
-void disassemble_file(char *filename, int thumb)
-{
-    FILE *f;
-    uint32_t word;
-    uint32_t address;
-
-    f = fopen(filename, "rb");
-    if (f == NULL)
-        error("File not found");
-
-    address = 0;
-    if (strstr(filename, ",ff8") != NULL)
-        address = 0x8000;
-
-    while (!feof(f))
-    {
-        int instsize = thumb ? 2 : 4;
-        if (fread(&word, instsize, 1, f) != 1)
-            break;
-
-        printf("%08lx : ", address);
-        if (thumb)
-            printf("%04lx : ", word);
-        else
-            printf("%08lx : ", word);
-
-        /* Write out the textual form of the word */
-        {
-            int i;
-            for (i=0; i<instsize; i++)
-            {
-                char value = (char)(word >> (8*i)) & 0xFF;
-                if (value < 32)
-                    value = '.';
-                else if (value == 127)
-                    value = '.';
-                printf("%c", value);
-            }
-        }
-        printf(" : ");
-
-        {
-            const char *dis = disassemble_word(word, address, thumb);
-            printf("%s\n", dis);
-        }
-
-        address += instsize;
-    }
-}
-
-
 int main(int argc, char *argv[])
 {
     char *filename;
     int thumb = 0;
+    disassemble_error_t err;
+    uint32_t start = 0;
+    uint32_t end = 0xFFFFFFFF;
 
-    if (argc != 2 && argc != 3)
+    if (argc < 2 | argc > 5)
     {
-        printf("Syntax: %s <filename>\n", argv[0]);
+        printf("Syntax: %s <filename> [<address> [[+|-]<address> [[+|-]<address>]", argv[0]);
         exit(1);
     }
 
@@ -88,11 +42,54 @@ int main(int argc, char *argv[])
     {
         thumb = 1;
         filename = argv[2];
+        argv+=3;
+        argc-=3;
     }
     else
     {
         filename = argv[1];
+        argv+=2;
+        argc-=2;
     }
 
-    disassemble_file(filename, thumb);
+    /* Construct a big string from the following arguments */
+    {
+        static char cmdline[256] = "";
+        while (argc)
+        {
+            char *str = *argv;
+
+            strcat(cmdline, str);
+            strcat(cmdline, " ");
+
+            argc--;
+            argv++;
+        }
+
+        {
+            /* Parse the parameters into addresses */
+            parsed_arch_t parsed_arch;
+            memory_params_t memory_params;
+            int inst_width;
+            int success;
+            const char *arg_string = cmdline;
+
+            arg_string = parse_architecture(arg_string, &parsed_arch);
+
+            inst_width = parsed_arch.inst_width_max;
+            success = parse_memory_params(arg_string, &memory_params, 0x8000000);
+            if (!success)
+            {
+                printf("Failed\n");
+                exit(1);
+            }
+
+            start = memory_params.base_addr;
+            end = memory_params.end_addr;
+        }
+    }
+
+    err = disassemble_file(filename, thumb, start, end);
+    if (err == diserror_file_not_found)
+        error("File not found");
 }

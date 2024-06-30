@@ -1,0 +1,228 @@
+/*******************************************************************
+ * File:        memoryi
+ * Purpose:     Disassembly of memory or file objects
+ * Author:      Gerph
+ * Date:        30 June 2024
+ ******************************************************************/
+
+#include <string.h>
+#include <stdio.h>
+#include <stdint.h>
+#include "swis.h"
+
+#include "memoryi.h"
+#include "rodis.h"
+
+
+int get_filetype(const char *filename)
+{
+    int type;
+    _kernel_oserror *err;
+    err = _swix(OS_File, _INR(0, 1)|_OUT(6), 20, filename, &type);
+    if (err)
+        return -1;
+    return type;
+}
+
+int is_escape_pressed(void)
+{
+    _kernel_oserror *err;
+    uint32_t flags;
+    err = _swix(OS_ReadEscapeState, _OUT(_FLAGS), &flags);
+    if (err)
+        return 1;
+    return (flags & _C) ? 1 : 0;
+}
+
+void clear_escape(void)
+{
+    _swix(OS_Byte, _IN(0), 124); /* Clear escape state */
+}
+
+
+typedef struct data_accessor_s data_accessor_t;
+
+struct data_accessor_s {
+    int (*read_block)(data_accessor_t *handle, uint32_t address, uint8_t *data, int size);
+};
+
+typedef struct file_accessor_s {
+    data_accessor_t data;
+    FILE *f;
+    uint32_t current_ptr;
+    uint32_t baseaddr;
+    uint32_t filesize;
+} file_accessor_t;
+
+int file_read_block(data_accessor_t *handle, uint32_t address, uint8_t *data, int size)
+{
+    file_accessor_t *file = (file_accessor_t *)handle;
+    uint32_t file_ptr = address - file->baseaddr;
+    int read;
+
+    if (file->current_ptr != file_ptr)
+    {
+        fseek(file->f, file_ptr, SEEK_SET);
+        file->current_ptr = file_ptr;
+    }
+    read = fread(data, 1, size, file->f);
+    file->current_ptr += read;
+
+    return read;
+}
+
+typedef struct memory_accessor_s {
+    data_accessor_t data;
+} memory_accessor_t;
+
+int memory_read_block(data_accessor_t *handle, uint32_t address, uint8_t *data, int size)
+{
+    memory_accessor_t *mem = (memory_accessor_t *)handle;
+
+    memcpy(data, (void*)address, size);
+    return size;
+}
+
+
+/*************************************************** Gerph *********
+ Function:      disassemble_stuff
+ Description:   Disassemble some data through the accessor and print to the screen.
+ Parameters:    accessor -> the data accessor for this object to dump
+                thumb = 1 if we're disassembling thumb
+                start = start address
+                end = end address (or 0xFFFFFFFF for entire file)
+ Returns:       error code
+ ******************************************************************/
+disassemble_error_t disassemble_stuff(data_accessor_t *accessor, int thumb,
+                                      uint32_t start, uint32_t end)
+{
+    uint32_t word;
+    uint32_t address = 0;
+
+    if (start < address)
+    {
+        start = address;
+    }
+    if (end < address)
+    {
+        goto exit;
+    }
+
+    if (start != address)
+    {
+        address = start;
+    }
+
+    while (address < end)
+    {
+        int instsize = thumb ? 2 : 4;
+        if (accessor->read_block(accessor, address, (uint8_t*)&word, instsize) != instsize)
+            break;
+
+        printf("%08lx : ", address);
+        if (thumb)
+            printf("%04lx : ", word);
+        else
+            printf("%08lx : ", word);
+
+        /* Write out the textual form of the word */
+        {
+            int i;
+            for (i=0; i<instsize; i++)
+            {
+                char value = (char)(word >> (8*i)) & 0xFF;
+                if (value < 32)
+                    value = '.';
+                else if (value == 127)
+                    value = '.';
+                printf("%c", value);
+            }
+        }
+        printf(" : ");
+
+        {
+            const char *dis = disassemble_word(word, address, thumb);
+            printf("%s\n", dis);
+        }
+
+        address += instsize;
+
+        if (is_escape_pressed())
+        {
+            clear_escape();
+            break;
+        }
+    }
+
+exit:
+    return diserror_none;
+}
+
+
+/*************************************************** Gerph *********
+ Function:      disassemble_file
+ Description:   Disassemble a file and print to the screen.
+ Parameters:    filename-> the file to disassemble
+                thumb = 1 if we're disassembling thumb
+                start = start address
+                end = end address (or 0xFFFFFFFF for entire file)
+ Returns:       error code
+ ******************************************************************/
+disassemble_error_t disassemble_file(const char *filename, int thumb,
+                                     uint32_t start, uint32_t end)
+{
+    disassemble_error_t err;
+    FILE *f;
+    file_accessor_t file;
+    uint32_t address;
+
+    f = fopen(filename, "rb");
+    if (f == NULL)
+        return diserror_file_not_found;
+
+    address = 0;
+    if (strstr(filename, ",ff8") != NULL ||
+        get_filetype(filename) == 0xFF8)
+        address = 0x8000;
+
+    file.f = f;
+    file.data.read_block = file_read_block;
+    file.baseaddr = address;
+
+    /* Find the file length */
+    fseek(f, 0, SEEK_END);
+    file.filesize = ftell(f);
+    fseek(f, 0, SEEK_SET);
+    file.current_ptr = 0;
+
+    if (file.baseaddr + end > file.filesize)
+        end = file.filesize - file.baseaddr;
+    if (file.baseaddr + start > file.filesize)
+        start = file.filesize - file.baseaddr;
+
+    err = disassemble_stuff((data_accessor_t*)&file, thumb, start, end);
+
+    fclose(f);
+    return err;
+}
+
+
+/*************************************************** Gerph *********
+ Function:      disassemble_memory
+ Description:   Disassemble a memory and print to the screen.
+ Parameters:    thumb = 1 if we're disassembling thumb
+                start = start address
+                end = end address (or 0xFFFFFFFF for entire file)
+ Returns:       error code
+ ******************************************************************/
+disassemble_error_t disassemble_memory(int thumb,
+                                       uint32_t start, uint32_t end)
+{
+    disassemble_error_t err;
+    memory_accessor_t mem;
+
+    mem.data.read_block = memory_read_block;
+
+    err = disassemble_stuff((data_accessor_t*)&mem, thumb, start, end);
+    return err;
+}

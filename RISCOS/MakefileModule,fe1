@@ -39,6 +39,8 @@ OBJS       = 			 \
 			 o.modhead \
 			 o.rodis \
              o.veneer \
+             o.cli-parser \
+             o.memoryi \
 
 
 include CModule

@@ -1,0 +1,198 @@
+/*******************************************************************
+ * File:        cli-parser
+ * Purpose:     Parsing command line arguments for the debugger commands
+ * Author:      Gerph
+ * Date:        30 June 2024
+ ******************************************************************/
+
+#include <ctype.h>
+#include <stdlib.h>
+#include "swis.h"
+
+#include "cli-parser.h"
+
+/*************************************************** Gerph *********
+ Function:      parse_architecture
+ Description:   Parse the  architecture string specified.
+ Parameters:    args-> the command string (ctrl terminated)
+                parsed_arch-> the structure to fill in.
+ Returns:       pointer to the next character in the command string
+ ******************************************************************/
+const char *parse_architecture(const char *args, parsed_arch_t *parsed_arch)
+{
+    char first;
+    while (*args == ' ')
+        args ++;
+
+    if (*args > ' ' && (args[1] == ' ' || args[1] < ' '))
+        first = toupper(*args);
+    else
+        first = 0;
+
+    switch (first)
+    {
+        case 'T':
+            parsed_arch->arch = arch_thumb;
+            parsed_arch->inst_width_min = 2;
+            parsed_arch->inst_width_max = 2;
+            args++;
+            break;
+
+        default:
+        case 'A':
+            parsed_arch->arch = arch_arm32;
+            parsed_arch->inst_width_min = 4;
+            parsed_arch->inst_width_max = 4;
+            if (first == 'A')
+                args++;
+            break;
+    }
+
+    return args;
+}
+
+
+typedef struct param_s {
+    uint32_t value;
+    int relative;
+} param_t;
+
+
+uint32_t os_readunsigned(uint32_t base_and_flags, const char *args, const char **argsp)
+{
+    uint32_t value;
+    _kernel_oserror *err;
+    err = _swix(OS_ReadUnsigned, _INR(0, 1)|_OUTR(1, 2),
+                                 base_and_flags, args,
+                                 argsp, &value);
+    if (err)
+        *argsp = NULL;
+    return value;
+}
+
+uint32_t readhex(const char *args, const char **argsp)
+{
+    return os_readunsigned(16, args, argsp);
+}
+
+/*************************************************** Gerph *********
+ Function:      parse_register
+ Description:   Parse  a register name into a number, or -1 if not known
+ Parameters:    args-> the args to read
+                argsp-> the end of the string
+ Returns:       the register number, or -1 if not known
+ ******************************************************************/
+int parse_register(const char *args, const char **argsp)
+{
+    /* FIXME: Implement this - should use the DescribeCPURegisters description */
+    return -1;
+}
+
+
+/*************************************************** Gerph *********
+ Function:      fetch_register
+ Description:   Read a register value from the exception block
+ Parameters:    regno = register number
+ Returns:       register value
+ ******************************************************************/
+uint32_t fetch_register(int regno)
+{
+    return 0;
+}
+
+
+/*************************************************** Gerph *********
+ Function:      param
+ Description:   Read a parameter from the argument string
+ Parameters:    args-> argument string (ctrl terminated)
+                params-> the block to fill in.
+ Returns:       pointer to the next character in the string, or NULL if not parsed
+ ******************************************************************/
+const char *param(const char *args, param_t *params)
+{
+    int regno;
+    params->value = 0;
+    params->relative = 0;
+    if (args == NULL)
+        return NULL;
+
+    while (*args == ' ')
+        args++;
+
+    if (*args < ' ')
+        return NULL;
+
+    if (*args == '+' || *args == '-')
+    {
+        params->relative = (*args == '+') ? 1 : -1;
+        args++;
+    }
+
+    /* We want to be able to handle the register numbers here.
+     * So for example using 'r1' will give r1 from the current
+     * exception block.
+     */
+    regno = parse_register(args, &args);
+    if (regno == -1)
+        params->value = readhex(args, &args);
+    else
+        params->value = fetch_register(regno);
+
+    return args;
+}
+
+
+/*************************************************** Gerph *********
+ Function:      parse_memory_params
+ Description:   Parse the memory parameters shared by *Memory, *MemoryI.
+ Parameters:    args -> the command string (control terminated)
+                memory_params-> the structure to fill in
+                default_size = number of bytes to use if no size/end is given.
+ Returns:       1 for success, 0 for failure
+ ******************************************************************/
+int parse_memory_params(const char *args, memory_params_t *memory_params, int default_size)
+{
+    param_t base_param, other_param, third_param;
+
+    args = param(args, &base_param);
+    args = param(args, &other_param);
+    args = param(args, &third_param);
+
+    if (base_param.relative)
+        return 0; /* RISCOSSyntheticError(self.ro, "First parameter must not be relative") */
+
+    if (third_param.value)
+    {
+        /* Three parameter form means A+B to A+B+C */
+        if (third_param.relative != 1 || other_param.relative == 0)
+            return 0; /* RISCOSSyntheticError(self.ro, syntax) */
+
+        base_param.value = base_param.value + other_param.value * other_param.relative;
+        other_param.value = base_param.value + third_param.value * third_param.relative;
+    }
+    else if (other_param.value)
+    {
+        /* Two parameter form means A to B or A to A+B */
+        if (other_param.relative != 0)
+            other_param.value = base_param.value + other_param.value * other_param.relative;
+    }
+    else
+    {
+        /* One parameter form means A to A+<default size> */
+        other_param.value = base_param.value + default_size;
+    }
+
+    /* FIXME: Maybe call OS_ValidateAddress on the range? */
+
+    /* If they're inverted, swap them - allows *MemoryI 8000 -20 */
+    if (base_param.value > other_param.value)
+    {
+        uint32_t value = base_param.value;
+        base_param.value = other_param.value;
+        other_param.value = value;
+    }
+
+    memory_params->base_addr = base_param.value;
+    memory_params->end_addr = other_param.value;
+    return 1;
+}
