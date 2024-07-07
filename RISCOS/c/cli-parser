@@ -9,6 +9,8 @@
 #include <stdlib.h>
 #include "swis.h"
 
+#include "riscos/envnumbers.h"
+
 #include "cli-parser.h"
 
 /*************************************************** Gerph *********
@@ -107,6 +109,28 @@ uint32_t readhex(const char *args, const char **argsp)
     return os_readunsigned(16, args, argsp);
 }
 
+uint32_t readint(const char *args, const char **argsp)
+{
+    return os_readunsigned(10, args, argsp);
+}
+
+/*************************************************** Gerph *********
+ Function:      read_exception_dump_area
+ Description:   Reads the location of the exception registers 'handler'
+ Parameters:    none
+ Returns:       pointer to the registers block, or NULL if none known
+ ******************************************************************/
+uint32_t *read_exception_dump_area(void)
+{
+    uint32_t *excregs = NULL;
+    _kernel_oserror *err;
+    err = _swix(OS_ChangeEnvironment, _INR(0, 3)|_OUT(1), ExceptionDumpArea, 0, 0, 0, &excregs);
+    if (err)
+        return NULL;
+    return excregs;
+}
+
+
 /*************************************************** Gerph *********
  Function:      parse_register
  Description:   Parse  a register name into a number, or -1 if not known
@@ -116,7 +140,45 @@ uint32_t readhex(const char *args, const char **argsp)
  ******************************************************************/
 int parse_register(const char *args, const char **argsp)
 {
-    /* FIXME: Implement this - should use the DescribeCPURegisters description */
+    int regno;
+    uint32_t *excregs = read_exception_dump_area();
+
+    if (excregs == NULL)
+        return -1;
+
+    /* FIXME: Should use the DescribeCPURegisters description */
+    if (*args == 'r' || *args == 'R')
+    {
+        /* Numbered register. */
+        regno = (int)readint(args + 1, argsp);
+        if (args == NULL)
+            return -1;
+        if (regno >= 16 || regno < 0)
+            return -1; /* Invalid register number */
+        return regno;
+    }
+
+    if ((*args == 's' || *args == 'S') &&
+        (*args == 'p' || *args == 'P'))
+    {
+        *argsp = args + 2;
+        return 13;
+    }
+
+    if ((*args == 'l' || *args == 'L') &&
+        (*args == 'r' || *args == 'R'))
+    {
+        *argsp = args + 2;
+        return 14;
+    }
+
+    if ((*args == 'p' || *args == 'P') &&
+        (*args == 'c' || *args == 'C'))
+    {
+        *argsp = args + 2;
+        return 15;
+    }
+
     return -1;
 }
 
@@ -129,7 +191,11 @@ int parse_register(const char *args, const char **argsp)
  ******************************************************************/
 uint32_t fetch_register(int regno)
 {
-    return 0;
+    uint32_t *excregs = read_exception_dump_area();
+    if (excregs == NULL)
+        return 0;
+
+    return excregs[regno];
 }
 
 
