@@ -84,6 +84,7 @@ int memory_read_block(data_accessor_t *handle, uint32_t address, uint8_t *data, 
 }
 
 
+
 /*************************************************** Gerph *********
  Function:      disassemble_stuff
  Description:   Disassemble some data through the accessor and print to the screen.
@@ -96,7 +97,10 @@ int memory_read_block(data_accessor_t *handle, uint32_t address, uint8_t *data, 
 disassemble_error_t disassemble_stuff(data_accessor_t *accessor, int thumb,
                                       uint32_t start, uint32_t end)
 {
-    uint32_t word;
+    /* We write out out disassembly as:
+            ADDR : WORD : text : disassembly
+     */
+    uint32_t word = 0;
     uint32_t address = 0;
 
     if (start < address)
@@ -160,6 +164,164 @@ exit:
 
 
 /*************************************************** Gerph *********
+ Function:      dump_stuff
+ Description:   Dump some data through the accessor and print to the screen.
+ Parameters:    accessor -> the data accessor for this object to dump
+                data_width = 1 or 4
+                start = start address
+                end = end address (or 0xFFFFFFFF for entire file)
+ Returns:       error code
+ ******************************************************************/
+disassemble_error_t dump_stuff(data_accessor_t *accessor, int data_width,
+                               uint32_t start, uint32_t end)
+{
+    /* We write out out disassembly as:
+            ADDR : WORD WORD WORD WORD : text
+            ADDR : BB BB BB BB BB BB BB BB BB BB BB BB BB BB BB BB : text
+     */
+    uint32_t address = 0;
+
+    if (start < address)
+    {
+        start = address;
+    }
+    if (end < address)
+    {
+        goto exit;
+    }
+
+    if (start != address)
+    {
+        address = start;
+    }
+
+    while (address < end)
+    {
+        int offset;
+        int row_size = 16;
+        uint8_t data[16];
+        int data_read;
+        data_read = accessor->read_block(accessor, address, (uint8_t*)&data, row_size);
+        if (data_read == 0)
+            break;
+
+        printf("%08lx : ", address);
+        for (offset=0; offset < row_size; offset+=data_width)
+        {
+            if (offset + data_width > data_read)
+            {
+                printf("%*s ", data_width * 2, "");
+            }
+            else
+            {
+                switch (data_width)
+                {
+                    case 2:
+                        {
+                            uint16_t *itemdata = (uint16_t*)(&data[offset]);
+                            printf("%04x ", *itemdata);
+                        }
+                        break;
+
+                    default:
+                    case 1:
+                        {
+                            uint8_t *itemdata = (uint8_t*)(&data[offset]);
+                            printf("%02x ", *itemdata);
+                        }
+                        break;
+
+                    case 4:
+                        {
+                            uint32_t *itemdata = (uint32_t*)(&data[offset]);
+                            printf("%08lx ", *itemdata);
+                        }
+                        break;
+                }
+            }
+        }
+        printf(": ");
+
+        /* Write out the textual form of the word */
+        for (offset=0; offset<row_size; offset++)
+        {
+            if (offset > data_read)
+            {
+                printf(" ");
+            }
+            else
+            {
+                char value = data[offset];
+                if (value < 32)
+                    value = '.';
+                else if (value == 127)
+                    value = '.';
+                printf("%c", value);
+            }
+        }
+
+        printf("\n");
+
+        address += row_size;
+
+        if (is_escape_pressed())
+        {
+            clear_escape();
+            break;
+        }
+    }
+
+exit:
+    return diserror_none;
+}
+
+
+/*************************************************** Gerph *********
+ Function:      create_file_accessor
+ Description:   Creates a file accessor for the given file, or returns an error.
+ Parameters:    file-> the accessor to populate
+                startp-> the start address to access (or NULL to ignore)
+                endp-> the end address to access (or NULL it ignore)
+ Returns:       error number, or 0 if none.
+ ******************************************************************/
+disassemble_error_t create_file_accessor(file_accessor_t *file,
+                                         const char *filename,
+                                         uint32_t *startp, uint32_t *endp)
+{
+    uint32_t address;
+    FILE *f;
+    f = fopen(filename, "rb");
+    if (f == NULL)
+        return diserror_file_not_found;
+
+    address = 0;
+    if (strstr(filename, ",ff8") != NULL ||
+        get_filetype(filename) == 0xFF8)
+        address = 0x8000;
+
+    file->f = f;
+    file->data.read_block = file_read_block;
+    file->baseaddr = address;
+
+    /* Find the file length */
+    fseek(f, 0, SEEK_END);
+    file->filesize = ftell(f);
+    fseek(f, 0, SEEK_SET);
+    file->current_ptr = 0;
+
+    if (endp != NULL &&
+        file->baseaddr + *endp > file->filesize)
+        *endp = file->filesize - file->baseaddr;
+
+    if (startp != NULL &&
+        file->baseaddr + *startp > file->filesize)
+        *startp = file->filesize - file->baseaddr;
+
+    return diserror_none;
+}
+
+
+/*************************************************** Gerph *********
  Function:      disassemble_file
  Description:   Disassemble a file and print to the screen.
  Parameters:    filename-> the file to disassemble
@@ -172,44 +334,22 @@ disassemble_error_t disassemble_file(const char *filename, int thumb,
                                      uint32_t start, uint32_t end)
 {
     disassemble_error_t err;
-    FILE *f;
     file_accessor_t file;
-    uint32_t address;
 
-    f = fopen(filename, "rb");
-    if (f == NULL)
-        return diserror_file_not_found;
-
-    address = 0;
-    if (strstr(filename, ",ff8") != NULL ||
-        get_filetype(filename) == 0xFF8)
-        address = 0x8000;
-
-    file.f = f;
-    file.data.read_block = file_read_block;
-    file.baseaddr = address;
-
-    /* Find the file length */
-    fseek(f, 0, SEEK_END);
-    file.filesize = ftell(f);
-    fseek(f, 0, SEEK_SET);
-    file.current_ptr = 0;
-
-    if (file.baseaddr + end > file.filesize)
-        end = file.filesize - file.baseaddr;
-    if (file.baseaddr + start > file.filesize)
-        start = file.filesize - file.baseaddr;
+    err = create_file_accessor(&file, filename, &start, &end);
+    if (err)
+        return err;
 
     err = disassemble_stuff((data_accessor_t*)&file, thumb, start, end);
 
-    fclose(f);
+    fclose(file.f);
     return err;
 }
 
 
 /*************************************************** Gerph *********
  Function:      disassemble_memory
- Description:   Disassemble a memory and print to the screen.
+ Description:   Disassemble some memory and print to the screen.
  Parameters:    thumb = 1 if we're disassembling thumb
                 start = start address
                 end = end address (or 0xFFFFFFFF for entire file)
@@ -225,4 +365,49 @@ disassemble_error_t disassemble_memory(int thumb,
 
     err = disassemble_stuff((data_accessor_t*)&mem, thumb, start, end);
     return err;
+}
+
+
+
+/*************************************************** Gerph *********
+ Function:      dump_file
+ Description:   Dump a file and print to the screen.
+ Parameters:    filename-> the file to disassemble
+                data_width = width of each block (1, 2 or 4 bytes)
+                start = start address
+                end = end address (or 0xFFFFFFFF for entire file)
+ Returns:       error code
+ ******************************************************************/
+disassemble_error_t dump_file(const char *filename, int data_width,
+                              uint32_t start, uint32_t end)
+{
+    disassemble_error_t err;
+    file_accessor_t file;
+
+    err = create_file_accessor(&file, filename, &start, &end);
+    if (err)
+        return err;
+
+    err = dump_stuff((data_accessor_t*)&file, data_width, start, end);
+
+    fclose(file.f);
+    return err;
+}
+
+/*************************************************** Gerph *********
+ Function:      dump_memory
+ Description:   Dump some memory and print to the screen.
+ Parameters:    data_width = width of each block (1, 2 or 4 bytes)
+                start = start address
+                end = end address (or 0xFFFFFFFF for entire file)
+ Returns:       none
+ ******************************************************************/
+void dump_memory(int data_width,
+                 uint32_t start, uint32_t end)
+{
+    memory_accessor_t mem;
+
+    mem.data.read_block = memory_read_block;
+
+    dump_stuff((data_accessor_t*)&mem, data_width, start, end);
 }

@@ -55,6 +55,17 @@ const char *parse_value_or_reg(const char *args, param_t *params);
 const char *parse_architecture(const char *args, parsed_arch_t *parsed_arch);
 
 /*************************************************** Gerph *********
+ Function:      parser_data_width
+ Description:   Parse the data width string as supplied on the command line
+                'W' for 4 bytes, 'H' for 2, 'B' for 1.
+ Parameters:    arg_string-> CLI string
+                data_widthp -> where to store the width
+                default_data_width = the default width to use
+ Returns:       pointer to the next character
+ ******************************************************************/
+const char *parse_data_width(const char *arg_string, int *data_widthp, int default_data_width);
+
+/*************************************************** Gerph *********
  Function:      parsed_memory_params
  Description:   Parse the memory paramemters shared by *Memory, *MemoryI.
  Parameters:    args_string-> the command string (control terminated)

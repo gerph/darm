@@ -41,4 +41,29 @@ disassemble_error_t disassemble_file(const char *filename, int thumb,
 disassemble_error_t disassemble_memory(int thumb,
                                        uint32_t start, uint32_t end);
 
+
+
+/*************************************************** Gerph *********
+ Function:      dump_file
+ Description:   Dump a file and print to the screen.
+ Parameters:    filename-> the file to disassemble
+                data_width = width of each block (1, 2 or 4 bytes)
+                start = start address
+                end = end address (or 0xFFFFFFFF for entire file)
+ Returns:       error code
+ ******************************************************************/
+disassemble_error_t dump_file(const char *filename, int data_width,
+                              uint32_t start, uint32_t end);
+
+/*************************************************** Gerph *********
+ Function:      dump_memory
+ Description:   Dump some memory and print to the screen.
+ Parameters:    data_width = width of each block (1, 2 or 4 bytes)
+                start = start address
+                end = end address (or 0xFFFFFFFF for entire file)
+ Returns:       none
+ ******************************************************************/
+void dump_memory(int data_width,
+                 uint32_t start, uint32_t end);
+
 #endif

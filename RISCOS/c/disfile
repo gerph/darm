@@ -28,25 +28,29 @@ int main(int argc, char *argv[])
 {
     char *filename;
     int thumb = 0;
+    int dump = 0;
+    int data_width = 4;
     disassemble_error_t err;
     uint32_t start = 0;
     uint32_t end = 0xFFFFFFFF;
 
     if (argc < 2 | argc > 5)
     {
-        printf("Syntax: %s <filename> [<address> [[+|-]<address> [[+|-]<address>]", argv[0]);
+        printf("Syntax: %s <filename> [T|A] [<address> [[+|-]<address> [[+|-]<address>]", argv[0]);
+        printf("        %s -dump <filename> [B] [<address> [[+|-]<address> [[+|-]<address>]", argv[0]);
         exit(1);
     }
 
-    if (strcmp(argv[1], "-thumb") == 0)
+    if (strcmp(argv[1], "-dump") == 0)
     {
-        thumb = 1;
+        dump = 1;
         filename = argv[2];
         argv+=3;
         argc-=3;
     }
     else
     {
+        /* ARM32 disassembly */
         filename = argv[1];
         argv+=2;
         argc-=2;
@@ -70,13 +74,19 @@ int main(int argc, char *argv[])
             /* Parse the parameters into addresses */
             parsed_arch_t parsed_arch;
             memory_params_t memory_params;
-            int inst_width;
             int success;
             const char *arg_string = cmdline;
 
-            arg_string = parse_architecture(arg_string, &parsed_arch);
+            if (dump)
+            {
+                arg_string = parse_data_width(arg_string, &data_width, data_width);
+            }
+            else
+            {
+                arg_string = parse_architecture(arg_string, &parsed_arch);
+                thumb = (parsed_arch.arch == arch_thumb) ? 1 : 0;
+            }
 
-            inst_width = parsed_arch.inst_width_max;
             success = parse_memory_params(arg_string, &memory_params, 0x8000000);
             if (!success)
             {
@@ -89,7 +99,14 @@ int main(int argc, char *argv[])
         }
     }
 
-    err = disassemble_file(filename, thumb, start, end);
+    if (dump)
+    {
+        err = dump_file(filename, data_width, start, end);
+    }
+    else
+    {
+        err = disassemble_file(filename, thumb, start, end);
+    }
     if (err == diserror_file_not_found)
         error("File not found");
 }
