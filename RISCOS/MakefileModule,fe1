@@ -41,6 +41,10 @@ OBJS       = 			 \
              o.veneer \
              o.cli-parser \
              o.memoryi \
+             o.showregs \
+             o.io \
+             o.introspection \
+             o.defaultcpuregs \
 
 
 include CModule

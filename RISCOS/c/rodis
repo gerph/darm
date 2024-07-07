@@ -87,3 +87,10 @@ const char *disassemble_word(uint32_t word, uint32_t address, int thumb)
 
     return buffer;
 }
+
+
+
+const char *debugger_disassemble(uint32_t word, uint32_t addr)
+{
+    return disassemble_word(word, addr, 0);
+}

@@ -1,0 +1,91 @@
+/*******************************************************************
+ * File:        cpuarchregs
+ * Purpose:     CPU architecture registers descriptor details
+ * Author:      Gerph
+ * Date:        2023-12-30
+ ******************************************************************/
+
+#ifndef CPUARCHREGS_H
+#define CPUARCHREGS_H
+
+
+/* Architecture definition types */
+#define AR_DEFTYPE_REGISTER (0)
+#define AR_DEFTYPE_FLAG     (1)
+
+/* Architecture register types */
+#define AR_REGTYPE_GENERAL  (0)
+#define AR_REGTYPE_STACK    (1)
+#define AR_REGTYPE_LINK     (2)
+#define AR_REGTYPE_PC       (3)
+#define AR_REGTYPE_FLAGS    (4)
+
+/* Identifiers for registers */
+#define AR_REGID_CPSR       (16)
+
+#define AR_REGLIST_TERMINATOR (0xFFFFFFFFlu)
+
+#define OS_PlatformFeatures_DescribeCPURegisters (64)
+
+
+typedef enum archid_e {
+    archid_aarch32,
+    archid_aarch64,
+    archid_x64
+} archid_t;
+
+typedef struct archregproto_s {
+    int defid:24;
+    int deftype:8;
+
+    unsigned long name_offset;
+    unsigned long regdump_offset;
+
+    unsigned long flags;
+} archregproto_t;
+
+typedef struct archregister_s {
+    int regid:24;
+    int deftype:8;
+
+    unsigned long name_offset;
+    unsigned long regdump_offset;
+
+    int bitwidth:12;
+    int regtype:4;
+    int alignment:8;
+    int reserved:8;
+} archregister_t;
+
+typedef struct archregflag_s {
+    int basebit:8;
+    int value:14;
+    int more_values:1;
+    int is_value:1;
+    int deftype:8;
+
+    unsigned long name_offset;
+    unsigned long regdump_offset;
+
+    int bitwidth:12;
+    int reserved:20;
+} archregflag_t;
+
+typedef struct archreg_s {
+    union {
+        int terminator;
+        archregproto_t proto;
+        archregister_t regdef;
+        archregflag_t flagdef;
+    } archreg;
+} archreg_t;
+
+typedef struct archregs_s {
+    archid_t archid;
+    int instruction_min_bytes;
+    int instruction_max_bytes;
+    int regdump_size;
+    archreg_t defs[1];
+} archregs_t;
+
+#endif

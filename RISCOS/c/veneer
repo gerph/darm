@@ -18,6 +18,7 @@
 #include "rodis.h"
 #include "cli-parser.h"
 #include "memoryi.h"
+#include "showregs.h"
 
 
 /* Number of instructions to disassemble if not supplied */
@@ -31,23 +32,6 @@
 
 /* Number of rows to dump in *Memory by default */
 #define MEMORY_DEFAULT_SIZE (40)
-
-
-/*************************************************** Gerph *********
- Function:      readm_memory_limit
- Description:   Reads the limit of memory in the application space
- Parameters:    none
- Returns:       maximum aaddress in application space
- ******************************************************************/
-uint32_t read_memory_limit(void)
-{
-    uint32_t limit;
-    _kernel_oserror *err;
-    err = _swix(OS_ChangeEnvironment, _INR(0, 3)|_OUT(1), 0, 0, 0, 0, &limit);
-    if (err)
-        limit = 0x8000;
-    return limit;
-}
 
 
 /***************************************************************************
@@ -243,10 +227,23 @@ _kernel_oserror *Cmd_InitStore(const char *arg_string, int argc, int number,
     limit = (uint32_t *)read_memory_limit();
     for (; mem<limit; mem++)
         *mem = value;
-    printf("Store initialised (up to &%08lx) with &%08lx\n", limit, value);
+    printf("Store initialised (up to &%08lx) with &%08lx\n", (uint32_t)limit, value);
     return NULL;
 }
 
+
+
+_kernel_oserror *Cmd_ShowRegs(const char *arg_string, int argc, int number,
+                              void *pw)
+{
+    unsigned long *regdump = get_exception_area();
+    excdumpregion_t *excdumpregion = get_exception_dump_region();
+    last_abort_info_t last_abort_info;
+    get_last_abort_info(&last_abort_info);
+
+    cmd_showregs(regdump, &last_abort_info, excdumpregion);
+    return NULL;
+}
 
 
 _kernel_oserror *SWI_Disassemble(int number, _kernel_swi_regs *r, void *pw)
@@ -275,4 +272,3 @@ _kernel_oserror *SWI_DisassembleThumb(int number, _kernel_swi_regs *r,
     r->r[2] = strlen(str);
     return NULL;
 }
-

@@ -1,0 +1,20 @@
+/*******************************************************************
+ * File:        io
+ * Purpose:     I/O functions (to avoid using C-like functions)
+ * Author:      Gerph
+ * Date:        2024-07-07
+ ******************************************************************/
+
+#ifndef IO_H
+#define IO_H
+
+void write(const char *s);
+void writec(char c);
+void newline(void);
+void writeln(const char *s);
+
+void writehex1(unsigned long value);
+void writehex2(unsigned long value);
+void writehex4(unsigned long value);
+
+#endif

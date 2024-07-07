@@ -1,0 +1,374 @@
+/*******************************************************************
+ * File:        c/showregs
+ * Purpose:     *ShowRegs implementation
+ * Author:      Gerph
+ * Date:        2023-12-29
+ ******************************************************************/
+
+#include <string.h>
+#include "rodis.h"
+#include "introspection.h"
+#include "io.h"
+
+
+/*************************************************** Gerph *********
+ Function:      write_flag_fields
+ Description:   Write the field names from the flags entry in the
+                CPU architecture registers descriptor.
+ Parameters:    value = the value of the flags to decode
+                archregs-> the base of the architecture regs block
+                archreg-> the flag fields to write
+ Returns:       1 if anything written, 0 if nothing written
+ ******************************************************************/
+int write_flag_fields(unsigned long value, archregs_t *archregs, archreg_t *archreg)
+{
+    int first = 1;
+    int last_bit = -2;
+    int last_short = 1;
+    char *flagname_found = NULL;
+    int longestflag = 0;
+    int wrote = 0;
+
+    for (;
+         archreg->archreg.terminator != AR_REGLIST_TERMINATOR;
+         archreg++)
+    {
+        switch (archreg->archreg.proto.deftype) {
+            case AR_DEFTYPE_FLAG:
+                {
+                    unsigned long flagvalue = (value >> archreg->archreg.flagdef.basebit);
+                    flagvalue = flagvalue & ((1ul<<archreg->archreg.flagdef.bitwidth) - 1);
+
+                    if (first)
+                    {
+                        first = 0;
+                    }
+                    else
+                    {
+                        /* If this flag differs from the one that came before by more than 1 flag, put a space */
+                        if (last_bit != archreg->archreg.flagdef.basebit &&
+                            last_bit + 1 != archreg->archreg.flagdef.basebit &&
+                            last_bit - 1 != archreg->archreg.flagdef.basebit &&
+                            last_short)
+                            writec(' ');
+                    }
+                    last_bit = archreg->archreg.flagdef.basebit;
+
+                    if (!archreg->archreg.flagdef.is_value && !archreg->archreg.flagdef.more_values)
+                    {
+                        /* Simple flag name */
+                        char *flagname = ((char *)archregs) + archreg->archreg.flagdef.name_offset;
+                        int flagnamelen = strlen(flagname);
+                        if (flagnamelen == 1)
+                        {
+                            /* lower case if unset, upper case if set */
+                            char c = *flagname;
+                            if ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z'))
+                            {
+                                if (flagvalue)
+                                    c = c & ~32; /* upper */
+                                else
+                                    c = c | 32; /* lower */
+                            }
+                            else
+                            {
+                                /* It's not a letter, so we use the character given if set, or '.' if not set */
+                                if (!flagvalue)
+                                    c = '.';
+                            }
+                            if (!last_short)
+                                writec(' ');
+                            writec(c);
+                            last_short = 1;
+                        }
+                        else
+                        {
+                            writec(' ');
+                            if (flagvalue)
+                                write(flagname);
+                            else
+                                for (;flagnamelen;flagnamelen--)
+                                    writec(' ');
+                            last_short = 0;
+                        }
+                    }
+                    else if (!archreg->archreg.flagdef.is_value && archreg->archreg.flagdef.more_values)
+                    {
+                        /* This is the first of the named values; we don't use this header name here,
+                           but we do reset the properties. */
+                        flagname_found = NULL;
+                        longestflag = 0;
+                    }
+                    else
+                    {
+                        /* This is one of the named values */
+                        char *flagname = ((char *)archregs) + archreg->archreg.flagdef.name_offset;
+                        int flagnamelen = strlen(flagname);
+                        if (flagnamelen > longestflag)
+                            longestflag = flagnamelen;
+                        if (flagvalue == archreg->archreg.flagdef.value)
+                        {
+                            /* We found the value for this field */
+                            flagname_found = flagname;
+                        }
+                        if (!archreg->archreg.flagdef.more_values)
+                        {
+                            /* This is the last item; so we need to print the found field name */
+                            if (!flagname_found)
+                                flagname_found = "";
+
+                            writec(' ');
+                            write(flagname_found);
+
+                            for (flagnamelen = strlen(flagname_found);
+                                 flagnamelen < longestflag;
+                                 flagnamelen++)
+                                writec(' ');
+                            last_short = 0;
+                        }
+                    }
+                }
+                wrote = 1;
+                break;
+
+            default:
+                /* Any other type of definition type means we reached the end of the list */
+                break;
+        }
+    }
+
+    return wrote;
+}
+
+
+/*************************************************** Gerph *********
+ Function:      cmd_showregs
+ Description:   *ShowRegs implementation
+ Parameters:    regdump -> the register dump to report
+                last_abort -> last_abort_info_t block, if any
+                excdumpregion -> the exception dump region, or NULL
+ Returns:       none
+ ******************************************************************/
+void cmd_showregs(unsigned long *regdump,
+                  last_abort_info_t *last_abort,
+                  excdumpregion_t *excdumpregion)
+{
+    archregs_t *archregs = describe_cpu_registers();
+    archreg_t *archreg;
+    archreg_t *archreg_cpsr = NULL;
+    int in_flags = 0;
+    unsigned long value = 0;
+    int pending_spaces = 0;
+    unsigned long pc = 0xFFFFFFFF;
+    int pc_bitwidth = 32;
+
+    int offset = 0;
+
+    /* Let's check whether all the values are 0 */
+    {
+        char *regdumpbytes = (char *)regdump;
+        int index;
+        int any_values = 0;
+        for (index = archregs->regdump_size - 1; index >= 0; index--)
+        {
+            if (regdumpbytes[index] != 0)
+            {
+                any_values = 1;
+                break;
+            }
+        }
+        if (!any_values)
+        {
+            writeln("No dump present");
+            return;
+        }
+    }
+
+    for (archreg = archregs->defs;
+         archreg->archreg.terminator != AR_REGLIST_TERMINATOR;
+         archreg++)
+    {
+        int wrotereg = 0;
+        switch (archreg->archreg.proto.deftype)
+        {
+            case AR_DEFTYPE_REGISTER:
+                {
+                    char *regname = ((char *)archregs) + archreg->archreg.regdef.name_offset;
+                    int regnamelen = strlen(regname);
+                    int valuelen = 0;
+                    char *dumpptr;
+
+                    if (archreg->archreg.regdef.regid == AR_REGID_CPSR)
+                        archreg_cpsr = archreg; /* Remember the CPSR for later */
+
+                    if (archreg->archreg.regdef.regdump_offset == -1)
+                        continue;
+
+                    if (in_flags)
+                    {
+                        write("\n");
+                        pending_spaces = 0;
+                        offset = (offset + 4) & ~3;
+                        in_flags = 0;
+                    }
+
+                    dumpptr = (((char *)regdump) + archreg->archreg.regdef.regdump_offset);
+
+                    if (pending_spaces)
+                        write("          " + pending_spaces);
+
+                    write(regname);
+                    if (regnamelen < 4)
+                    {
+                        write("    " + regnamelen);
+                    }
+                    write("= &");
+                    if (archreg->archreg.regdef.bitwidth <= 8)
+                    {
+                        value = *dumpptr;
+                        value = value & ((1ul<<archreg->archreg.regdef.bitwidth) - 1);
+                        writehex1(value);
+                        valuelen = 2;
+                    }
+                    else if (archreg->archreg.regdef.bitwidth <= 16)
+                    {
+                        value = *(unsigned short *)dumpptr;
+                        value = value & ((1ul<<archreg->archreg.regdef.bitwidth) - 1);
+                        writehex2(value);
+                        valuelen = 4;
+                    }
+                    else if (archreg->archreg.regdef.bitwidth <= 32)
+                    {
+                        value = *(unsigned long *)dumpptr;
+                        value = value & ((1ul<<archreg->archreg.regdef.bitwidth) - 1);
+                        writehex4(value);
+                        valuelen = 8;
+                    }
+                    else
+                    {
+                        write("?");
+                        valuelen = 1;
+                    }
+                    if (archreg->archreg.regdef.regtype == AR_REGTYPE_PC)
+                    {
+                        pc = value;
+                        pc_bitwidth = archreg->archreg.regdef.bitwidth;
+                    }
+
+                    pending_spaces = 10 - valuelen;
+                    wrotereg = 1;
+                }
+                break;
+
+            case AR_DEFTYPE_FLAG:
+                {
+                    if (!in_flags)
+                    {
+                        in_flags = 1;
+                        write(" :");
+                        write_flag_fields(value, archregs, archreg);
+                    }
+                }
+                break;
+        }
+
+        if (wrotereg)
+        {
+            if ((offset & 3) == 3)
+            {
+                writeln("");
+                pending_spaces = 0;
+            }
+            offset ++;
+        }
+    }
+    if ((offset & 3) != 0)
+        writeln("");
+
+    /* Report the fault address registers - but only if something has been reported */
+    if (last_abort->pc != 0 && last_abort->psr != 0)
+    {
+        writeln("");
+        writeln("Last abort:");
+        if (pc != 0xFFFFFFFF && last_abort->pc != pc)
+        {
+            write("  pc:     &");
+            if (pc_bitwidth <= 8)
+                writehex1(last_abort->pc);
+            else if (pc_bitwidth <= 16)
+                writehex2(last_abort->pc);
+            else if (pc_bitwidth <= 32)
+                writehex4(last_abort->pc);
+            writeln("");
+        }
+
+        write("  PSR:    &");
+        /* FIXME: Should use the width from the PSR definition? */
+        writehex4(last_abort->psr);
+        if (archreg_cpsr)
+        {
+            write(" :");
+            write_flag_fields(last_abort->psr, archregs, archreg_cpsr);
+            writeln("");
+        }
+
+        write("  Fault:  &");
+        writehex4(last_abort->fault_address);
+        writeln("");
+    }
+
+    if (excdumpregion &&
+        excdumpregion->pc == pc &&
+        excdumpregion->dumpsize != 0)
+    {
+        /* Report the backtrace if there's a dump region, and it matches the current abort PC */
+        unsigned long baseaddr = excdumpregion->baseaddr;
+        unsigned long *data = excdumpregion->dump;
+        unsigned long size = excdumpregion->dumpsize;
+
+        writeln("");
+        writeln("Disassembly before pc (at time of exception):");
+        if (archregs->instruction_min_bytes == 4 &&
+            archregs->instruction_max_bytes == 4)
+        {
+            for (; size > 0; size -= 4, baseaddr += 4)
+            {
+                unsigned long word = *data++;
+                const char *dis;
+                write("  &");
+                writehex4(baseaddr);
+                write(" : &");
+                writehex4(word);
+                write(" ");
+                if (baseaddr == pc)
+                    write(">");
+                else
+                    write(":");
+                write(" ");
+                dis = debugger_disassemble(word, baseaddr);
+                writeln(dis ? dis : "<none>");
+            }
+        }
+        else
+        {
+            /* FIXME: Lazy non-disassembly case - add code to disassemble better */
+            writeln("  <not dumping disassembly>");
+        }
+    }
+}
+
+
+#ifdef TEST
+int main(int argc, char **argv)
+{
+    unsigned long *regdump = get_exception_area();
+    excdumpregion_t *excdumpregion = get_exception_dump_region();
+    last_abort_info_t last_abort_info;
+    get_last_abort_info(&last_abort_info);
+
+    regdump[16] = 0x90000013;
+    last_abort_info.pc = 0x8000;
+    last_abort_info.psr = 0x40000010;
+    cmd_showregs(regdump, &last_abort_info, excdumpregion);
+}
+#endif

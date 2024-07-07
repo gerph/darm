@@ -87,6 +87,8 @@ _kernel_oserror *Cmd_DumpI(const char *arg_string, int argc, int number,
                            void *pw);
 _kernel_oserror *Cmd_InitStore(const char *arg_string, int argc, int number,
                                void *pw);
+_kernel_oserror *Cmd_ShowRegs(const char *arg_string, int argc, int number,
+                              void *pw);
 #define help_PRINT_BUFFER		((_kernel_oserror *) arg_string)
 #define arg_CONFIGURE_SYNTAX		((char *) 0)
 #define arg_STATUS			((char *) 1)
@@ -104,6 +106,8 @@ _kernel_oserror *Cmd_InitStore(const char *arg_string, int argc, int number,
 #define CMD_DumpI (2)
 #undef CMD_InitStore
 #define CMD_InitStore (3)
+#undef CMD_ShowRegs
+#define CMD_ShowRegs (4)
 
 
 /***************************************************************************

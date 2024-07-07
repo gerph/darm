@@ -1,0 +1,25 @@
+/*******************************************************************
+ * File:        showregs
+ * Purpose:     Implementation of *ShowRegs
+ * Author:      Gerph
+ * Date:        2024-07-07
+ ******************************************************************/
+
+#ifndef SHOWREGS_H
+#define SHOWREGS_H
+
+#include "introspection.h"
+
+/*************************************************** Gerph *********
+ Function:      cmd_showregs
+ Description:   *ShowRegs implementation
+ Parameters:    regdump -> the register dump to report
+                last_abort -> last_abort_info_t block, if any
+                excdumpregion -> the exception dump region, or NULL
+ Returns:       none
+ ******************************************************************/
+void cmd_showregs(unsigned long *regdump,
+                  last_abort_info_t *last_abort,
+                  excdumpregion_t *excdumpregion);
+
+#endif

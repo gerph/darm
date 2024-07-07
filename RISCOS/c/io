@@ -1,0 +1,58 @@
+/*******************************************************************
+ * File:        io
+ * Purpose:     I/O functions (to avoid using C-like functions)
+ * Author:      Gerph
+ * Date:        2024-07-07
+ ******************************************************************/
+
+#include <stdio.h>
+
+void write(const char *s)
+{
+    printf("%s", s);
+}
+void writec(char c)
+{
+    printf("%c", c);
+}
+void newline(void)
+{
+    printf("\n");
+}
+
+void writeln(const char *s)
+{
+    write(s);
+    newline();
+}
+
+#define HEX(x) ("0123456789ABCDEF"[(x) & 0xF])
+void writehex1(unsigned long value)
+{
+    writec(HEX(value>>4));
+    writec(HEX(value));
+}
+void writehex2(unsigned long value)
+{
+    char buf[5];
+    buf[0] = HEX(value>>12);
+    buf[1] = HEX(value>>8);
+    buf[2] = HEX(value>>4);
+    buf[3] = HEX(value>>0);
+    buf[4] = 0;
+    write(buf);
+}
+void writehex4(unsigned long value)
+{
+    char buf[9];
+    buf[0] = HEX(value>>28);
+    buf[1] = HEX(value>>24);
+    buf[2] = HEX(value>>20);
+    buf[3] = HEX(value>>16);
+    buf[4] = HEX(value>>12);
+    buf[5] = HEX(value>>8);
+    buf[6] = HEX(value>>4);
+    buf[7] = HEX(value>>0);
+    buf[8] = 0;
+    write(buf);
+}

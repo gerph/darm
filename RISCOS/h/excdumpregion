@@ -1,0 +1,22 @@
+/*******************************************************************
+ * File:        excdumpregion
+ * Purpose:     Exception dump region definition
+ * Author:      Gerph
+ * Date:        2024-06-14
+ ******************************************************************/
+
+#ifndef EXCDUMPREGION_H
+#define EXCDUMPREGION_H
+
+#ifndef ExceptionDumpRegion
+#define ExceptionDumpRegion (0x22)
+#endif
+
+typedef struct excdumpregion_s {
+    unsigned long pc;
+    unsigned long baseaddr;
+    unsigned long dumpsize;
+    unsigned long dump[1];
+} excdumpregion_t;
+
+#endif

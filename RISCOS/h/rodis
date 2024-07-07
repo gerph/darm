@@ -20,4 +20,6 @@ const char *lookup_swi(uint32_t swinum);
 
 const char *disassemble_word(uint32_t word, uint32_t address, int thumb);
 
+const char *debugger_disassemble(uint32_t word, uint32_t addr);
+
 #endif
