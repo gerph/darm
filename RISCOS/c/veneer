@@ -11,6 +11,8 @@
 #include <string.h>
 
 #include "kernel.h"
+#include "swis.h"
+
 #include "modhead.h"
 
 #include "rodis.h"
@@ -20,6 +22,31 @@
 
 /* Number of instructions to disassemble if not supplied */
 #define MEMORYI_DEFAULT_SIZE (16)
+
+/* Where application space starts */
+#define APPLICATION_SPACE_BASE (0x8000)
+
+/* Invalid instruction to use by default in *InitStore */
+#define DEFAULT_INITSTORE_VALUE (0xE7FFFFFF)
+
+
+
+
+/*************************************************** Gerph *********
+ Function:      readm_memory_limit
+ Description:   Reads the limit of memory in the application space
+ Parameters:    none
+ Returns:       maximum aaddress in application space
+ ******************************************************************/
+uint32_t read_memory_limit(void)
+{
+    uint32_t limit;
+    _kernel_oserror *err;
+    err = _swix(OS_ChangeEnvironment, _INR(0, 3)|_OUT(1), 0, 0, 0, 0, &limit);
+    if (err)
+        limit = 0x8000;
+    return limit;
+}
 
 
 /***************************************************************************
@@ -161,6 +188,33 @@ _kernel_oserror *Cmd_DumpI(const char *arg_string, int argc, int number,
     return NULL;
 }
 
+
+
+_kernel_oserror *Cmd_InitStore(const char *arg_string, int argc, int number,
+                               void *pw)
+{
+    uint32_t *mem = (uint32_t*)APPLICATION_SPACE_BASE;
+    uint32_t *limit;
+    uint32_t value;
+    if (argc == 0)
+    {
+        value = DEFAULT_INITSTORE_VALUE;
+    }
+    else
+    {
+        param_t param;
+        arg_string = parse_value_or_reg(arg_string, &param);
+        if (arg_string == NULL)
+            return NULL; /* FIXME: Put and error here */
+        value = param.value;
+    }
+
+    limit = (uint32_t *)read_memory_limit();
+    for (; mem<limit; mem++)
+        *mem = value;
+    printf("Store initialised (up to &%08lx) with &%08lx\n", limit, value);
+    return NULL;
+}
 
 
 

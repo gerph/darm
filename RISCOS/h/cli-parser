@@ -30,6 +30,21 @@ typedef struct memory_params_s {
 } memory_params_t;
 
 
+typedef struct param_s {
+    uint32_t value;
+    int relative;
+} param_t;
+
+
+/*************************************************** Gerph *********
+ Function:      parse_value_or_reg
+ Description:   Read a parameter from the argument string
+ Parameters:    args-> argument string (ctrl terminated)
+                params-> the block to fill in.
+ Returns:       pointer to the next character in the string, or NULL if not parsed
+ ******************************************************************/
+const char *parse_value_or_reg(const char *args, param_t *params);
+
 /*************************************************** Gerph *********
  Function:      parse_architecture
  Description:   Parse the  architecture string specified.

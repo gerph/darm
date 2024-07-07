@@ -52,12 +52,6 @@ const char *parse_architecture(const char *args, parsed_arch_t *parsed_arch)
 }
 
 
-typedef struct param_s {
-    uint32_t value;
-    int relative;
-} param_t;
-
-
 uint32_t os_readunsigned(uint32_t base_and_flags, const char *args, const char **argsp)
 {
     uint32_t value;
@@ -102,13 +96,13 @@ uint32_t fetch_register(int regno)
 
 
 /*************************************************** Gerph *********
- Function:      param
+ Function:      parse_value_or_reg
  Description:   Read a parameter from the argument string
  Parameters:    args-> argument string (ctrl terminated)
                 params-> the block to fill in.
  Returns:       pointer to the next character in the string, or NULL if not parsed
  ******************************************************************/
-const char *param(const char *args, param_t *params)
+const char *parse_value_or_reg(const char *args, param_t *params)
 {
     int regno;
     params->value = 0;
@@ -154,9 +148,9 @@ int parse_memory_params(const char *args, memory_params_t *memory_params, int de
 {
     param_t base_param, other_param, third_param;
 
-    args = param(args, &base_param);
-    args = param(args, &other_param);
-    args = param(args, &third_param);
+    args = parse_value_or_reg(args, &base_param);
+    args = parse_value_or_reg(args, &other_param);
+    args = parse_value_or_reg(args, &third_param);
 
     if (base_param.relative)
         return 0; /* RISCOSSyntheticError(self.ro, "First parameter must not be relative") */
