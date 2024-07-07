@@ -121,20 +121,17 @@ _kernel_oserror *Mod_Command(const char *arg_string, int argc, int number,
 
 
 
-/* *Memory [B] <addr1|reg1> [[+|-] <addr2|reg2> [+ <addr3|reg3>]] */
+/* *Memory [B|W|H] <addr1|reg1> [[+|-] <addr2|reg2> [+ <addr3|reg3>]] */
 _kernel_oserror *Cmd_Memory(const char *arg_string, int argc, int number,
                             void *pw)
 {
     parsed_arch_t parsed_arch;
     memory_params_t memory_params;
-    int data_width;
+    int data_width = 4;
     int row_width = 16;
     int success;
 
-    if (arg_string[0] == 'B' && arg_string[1] <= ' ')
-        data_width = 1;
-    else
-        data_width = 4;
+    arg_string = parse_data_width(arg_string, &data_width, data_width);
 
     success = parse_memory_params(arg_string, &memory_params, MEMORY_DEFAULT_SIZE * row_width);
     if (!success)

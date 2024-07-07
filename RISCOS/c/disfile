@@ -79,10 +79,7 @@ int main(int argc, char *argv[])
 
             if (dump)
             {
-                if (arg_string[0] == 'B' && arg_string[1] <= ' ')
-                    data_width = 1;
-                else
-                    data_width = 4;
+                arg_string = parse_data_width(arg_string, &data_width, data_width);
             }
             else
             {

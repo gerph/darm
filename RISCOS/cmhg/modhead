@@ -206,9 +206,9 @@ swi-decoding-table: Debugger Disassemble/SWI_Disassemble DisassembleThumb/SWI_Di
 ;     creating help-only commands.
 command-keyword-table: Mod_Command
    Memory(min-args: 1, max-args: 6, add-syntax:,
-          invalid-syntax: "Syntax: *Memory [B] <addr1|reg1> [[+|-] <addr2|reg2> [+ <addr3|reg3>]]",
+          invalid-syntax: "Syntax: *Memory [B|W|H] <addr1|reg1> [[+|-] <addr2|reg2> [+ <addr3|reg3>]]",
           help-text: "*Memory dumps memory in a hexadecimal and textual form.",
-          handler: Cmd_MemoryI),
+          handler: Cmd_Memory),
    MemoryI(min-args: 1, max-args: 6, add-syntax:,
            invalid-syntax: "Syntax: *MemoryI [T|A] <addr1|reg1> [[+|-] <addr2|reg2> [+ <addr3|reg3>]]",
            help-text: "*MemoryI disassembles memory into instructions (ARM, Thumb).",

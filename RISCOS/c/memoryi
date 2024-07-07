@@ -200,35 +200,44 @@ disassemble_error_t dump_stuff(data_accessor_t *accessor, int data_width,
         int offset;
         int row_size = 16;
         uint8_t data[16];
-        if (accessor->read_block(accessor, address, (uint8_t*)&data, row_size) != row_size)
+        int data_read;
+        data_read = accessor->read_block(accessor, address, (uint8_t*)&data, row_size);
+        if (data_read == 0)
             break;
 
         printf("%08lx : ", address);
         for (offset=0; offset < row_size; offset+=data_width)
         {
-            switch (data_width)
+            if (offset + data_width > data_read)
             {
-                case 2:
-                    {
-                        uint16_t *itemdata = (uint16_t*)(&data[offset]);
-                        printf("%04x ", *itemdata);
-                    }
-                    break;
+                printf("%*s ", data_width * 2, "");
+            }
+            else
+            {
+                switch (data_width)
+                {
+                    case 2:
+                        {
+                            uint16_t *itemdata = (uint16_t*)(&data[offset]);
+                            printf("%04x ", *itemdata);
+                        }
+                        break;
 
-                default:
-                case 1:
-                    {
-                        uint8_t *itemdata = (uint8_t*)(&data[offset]);
-                        printf("%02x ", *itemdata);
-                    }
-                    break;
+                    default:
+                    case 1:
+                        {
+                            uint8_t *itemdata = (uint8_t*)(&data[offset]);
+                            printf("%02x ", *itemdata);
+                        }
+                        break;
 
-                case 4:
-                    {
-                        uint32_t *itemdata = (uint32_t*)(&data[offset]);
-                        printf("%08lx ", *itemdata);
-                    }
-                    break;
+                    case 4:
+                        {
+                            uint32_t *itemdata = (uint32_t*)(&data[offset]);
+                            printf("%08lx ", *itemdata);
+                        }
+                        break;
+                }
             }
         }
         printf(": ");
@@ -236,12 +245,19 @@ disassemble_error_t dump_stuff(data_accessor_t *accessor, int data_width,
         /* Write out the textual form of the word */
         for (offset=0; offset<row_size; offset++)
         {
-            char value = data[offset];
-            if (value < 32)
-                value = '.';
-            else if (value == 127)
-                value = '.';
-            printf("%c", value);
+            if (offset > data_read)
+            {
+                printf(" ");
+            }
+            else
+            {
+                char value = data[offset];
+                if (value < 32)
+                    value = '.';
+                else if (value == 127)
+                    value = '.';
+                printf("%c", value);
+            }
         }
 
         printf("\n");

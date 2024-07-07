@@ -79,8 +79,8 @@ _kernel_oserror *Mod_Final(int fatal, int podule_base, void *pw);
  **************************************************************************/
 _kernel_oserror *Mod_Command(const char *arg_string, int argc, int number,
                              void *pw);
-_kernel_oserror *Cmd_MemoryI(const char *arg_string, int argc, int number,
-                             void *pw);
+_kernel_oserror *Cmd_Memory(const char *arg_string, int argc, int number,
+                            void *pw);
 _kernel_oserror *Cmd_MemoryI(const char *arg_string, int argc, int number,
                              void *pw);
 _kernel_oserror *Cmd_DumpI(const char *arg_string, int argc, int number,
