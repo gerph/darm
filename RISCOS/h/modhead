@@ -81,6 +81,8 @@ _kernel_oserror *Mod_Command(const char *arg_string, int argc, int number,
                              void *pw);
 _kernel_oserror *Cmd_MemoryI(const char *arg_string, int argc, int number,
                              void *pw);
+_kernel_oserror *Cmd_MemoryI(const char *arg_string, int argc, int number,
+                             void *pw);
 _kernel_oserror *Cmd_DumpI(const char *arg_string, int argc, int number,
                            void *pw);
 _kernel_oserror *Cmd_InitStore(const char *arg_string, int argc, int number,
@@ -94,12 +96,14 @@ _kernel_oserror *Cmd_InitStore(const char *arg_string, int argc, int number,
 #define configure_TOO_MANY_PARAMS	((_kernel_oserror *) 3)
 
 /* Command numbers, as passed to the command handler functions (see above) */
+#undef CMD_Memory
+#define CMD_Memory (0)
 #undef CMD_MemoryI
-#define CMD_MemoryI (0)
+#define CMD_MemoryI (1)
 #undef CMD_DumpI
-#define CMD_DumpI (1)
+#define CMD_DumpI (2)
 #undef CMD_InitStore
-#define CMD_InitStore (2)
+#define CMD_InitStore (3)
 
 
 /***************************************************************************

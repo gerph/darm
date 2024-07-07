@@ -29,7 +29,8 @@
 /* Invalid instruction to use by default in *InitStore */
 #define DEFAULT_INITSTORE_VALUE (0xE7FFFFFF)
 
-
+/* Number of rows to dump in *Memory by default */
+#define MEMORY_DEFAULT_SIZE (40)
 
 
 /*************************************************** Gerph *********
@@ -119,6 +120,39 @@ _kernel_oserror *Mod_Command(const char *arg_string, int argc, int number,
 }
 
 
+
+/* *Memory [B] <addr1|reg1> [[+|-] <addr2|reg2> [+ <addr3|reg3>]] */
+_kernel_oserror *Cmd_Memory(const char *arg_string, int argc, int number,
+                            void *pw)
+{
+    parsed_arch_t parsed_arch;
+    memory_params_t memory_params;
+    int data_width;
+    int row_width = 16;
+    int success;
+
+    if (arg_string[0] == 'B' && arg_string[1] <= ' ')
+        data_width = 1;
+    else
+        data_width = 4;
+
+    success = parse_memory_params(arg_string, &memory_params, MEMORY_DEFAULT_SIZE * row_width);
+    if (!success)
+    {
+        printf("Failed\n"); /* FIXME: Put an error here */
+        return NULL;
+    }
+
+    dump_memory(data_width,
+                memory_params.base_addr,
+                memory_params.end_addr);
+
+    return NULL;
+}
+
+
+
+
 /* *MemoryI [T|A] <addr1|reg1> [[+|-] <addr2|reg2> [+ <addr3|reg3>]] */
 _kernel_oserror *Cmd_MemoryI(const char *arg_string, int argc, int number,
                              void *pw)
@@ -135,7 +169,7 @@ _kernel_oserror *Cmd_MemoryI(const char *arg_string, int argc, int number,
     success = parse_memory_params(arg_string, &memory_params, MEMORYI_DEFAULT_SIZE * inst_width);
     if (!success)
     {
-        printf("Failed\n");
+        printf("Failed\n"); /* FIXME: Put an error here */
         return NULL;
     }
 
