@@ -31,7 +31,7 @@ jobs:
 
       - cdir ^.Artifacts
       - copy rm32.Debugger ^.Artifacts.Debugger ~CV~RF
-      - copy rm32.DisFile ^.Artifacts.DisFile ~CV~RF
+      - copy aif32.DisFile ^.Artifacts.DisFile ~CV~RF
 
     # Outputs from the build are defined in artifacts
     # These are a list of artifacts to report directories or files.
