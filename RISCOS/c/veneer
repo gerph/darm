@@ -33,6 +33,15 @@
 /* Number of rows to dump in *Memory by default */
 #define MEMORY_DEFAULT_SIZE (40)
 
+/* Define this to debug this file */
+//#define DEBUG
+
+
+#ifdef DEBUG
+#define dprintf if (1) printf
+#else
+#define dprintf if (0) printf
+#endif
 
 /***************************************************************************
  * Function:     Mod_Init
@@ -48,7 +57,7 @@
  **************************************************************************/
 _kernel_oserror *Mod_Init(const char *tail, int podule_base, void *pw)
 {
-    printf("Module Debugger initialised\n");
+    dprintf("Module Debugger initialised\n");
     return NULL;
 }
 
@@ -67,7 +76,7 @@ _kernel_oserror *Mod_Init(const char *tail, int podule_base, void *pw)
  **************************************************************************/
 _kernel_oserror *Mod_Final(int fatal, int podule_base, void *pw)
 {
-    printf("Module Debugger dying\n");
+    dprintf("Module Debugger dying\n");
     return NULL;
 }
 
@@ -120,8 +129,7 @@ _kernel_oserror *Cmd_Memory(const char *arg_string, int argc, int number,
     success = parse_memory_params(arg_string, &memory_params, MEMORY_DEFAULT_SIZE * row_width);
     if (!success)
     {
-        printf("Failed\n"); /* FIXME: Put an error here */
-        return NULL;
+        return err_CannotParseStarMemory;
     }
 
     dump_memory(data_width,
@@ -150,8 +158,7 @@ _kernel_oserror *Cmd_MemoryI(const char *arg_string, int argc, int number,
     success = parse_memory_params(arg_string, &memory_params, MEMORYI_DEFAULT_SIZE * inst_width);
     if (!success)
     {
-        printf("Failed\n"); /* FIXME: Put an error here */
-        return NULL;
+        return err_CannotParseStarMemoryI;
     }
 
     err = disassemble_memory((parsed_arch.arch == arch_thumb) ? 1 : 0,
@@ -189,8 +196,7 @@ _kernel_oserror *Cmd_DumpI(const char *arg_string, int argc, int number,
     success = parse_memory_params(arg_string, &memory_params, 0x80000000);
     if (!success)
     {
-        printf("Failed\n");
-        return NULL;
+        return err_CannotParseStarDumpI;
     }
 
     err = disassemble_file(filename,
@@ -198,7 +204,10 @@ _kernel_oserror *Cmd_DumpI(const char *arg_string, int argc, int number,
                            memory_params.base_addr,
                            memory_params.end_addr);
     if (err == diserror_file_not_found)
-        printf("File not found");
+    {
+        _kernel_oserror *roerr = _swix(OS_File, _INR(0,2), 19, filename, 0);
+        return roerr;
+    }
 
     return NULL;
 }
@@ -220,7 +229,7 @@ _kernel_oserror *Cmd_InitStore(const char *arg_string, int argc, int number,
         param_t param;
         arg_string = parse_value_or_reg(arg_string, &param);
         if (arg_string == NULL)
-            return NULL; /* FIXME: Put and error here */
+            return err_BadSyntaxInitStore;
         value = param.value;
     }
 

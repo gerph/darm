@@ -52,13 +52,16 @@ swi-chunk-base-number: &40380
 ; &1B000000- &1BFFFFFF are for program (NOT module) errors.
 ; &80000000- &FFFFFFFF are for serious hardware exceptions.
 ; Consult PRM 1-43, 5a-493 for more details.
-;error-base: &840000
+error-base: &840000 ; FIXME: Not allocated
 
 ; Allocating error messages within the module is more efficient than doing
 ; so manually in your C code, and is less likely to pollute error number
 ; space. The number is optional, and if omitted will be allocated from the
 ; error chunk.
-;error-identifiers: err_Silly(&1234,"Silly")
+error-identifiers: err_CannotParseStarMemory("Bad *Memory syntax"),
+                   err_CannotParseStarMemoryI("Bad *MemoryI syntax"),
+                   err_CannotParseStarDumpI("Bad *DumpI syntax"),
+                   err_BadSyntaxInitStore("Bad syntax for *InitStore")
 
 ; When the module is initialised, this routine will be entered. You should
 ; be very careful to initialise your module safely. If anything fails, you

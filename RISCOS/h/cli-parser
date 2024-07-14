@@ -33,6 +33,7 @@ typedef struct memory_params_s {
 typedef struct param_s {
     uint32_t value;
     int relative;
+    int invalid;
 } param_t;
 
 

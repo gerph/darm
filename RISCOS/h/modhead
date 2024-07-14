@@ -139,6 +139,18 @@ _kernel_oserror *SWI_DisassembleThumb(int number, _kernel_swi_regs *r,
 /* Special error for 'SWI values out of range for this module' */
 #define error_BAD_SWI ((_kernel_oserror *) -1)
 
+/* Error base for this module */
+#define ERROR_BASE (0x00840000)
+/* Error messages embedded in header, based at &840000 */
+extern void __err_err_CannotParseStarMemory(void); /* &840000 */
+extern void __err_err_CannotParseStarMemoryI(void); /* &840001 */
+extern void __err_err_CannotParseStarDumpI(void); /* &840002 */
+extern void __err_err_BadSyntaxInitStore(void); /* &840003 */
+#define err_CannotParseStarMemory ((_kernel_oserror*)(int)__err_err_CannotParseStarMemory)
+#define err_CannotParseStarMemoryI ((_kernel_oserror*)(int)__err_err_CannotParseStarMemoryI)
+#define err_CannotParseStarDumpI ((_kernel_oserror*)(int)__err_err_CannotParseStarDumpI)
+#define err_BadSyntaxInitStore ((_kernel_oserror*)(int)__err_err_BadSyntaxInitStore)
+
 #ifdef __cplusplus
 }
 #endif

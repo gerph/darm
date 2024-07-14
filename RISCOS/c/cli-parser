@@ -194,16 +194,23 @@ uint32_t fetch_register(int regno)
 const char *parse_value_or_reg(const char *args, param_t *params)
 {
     int regno;
+    params->invalid = 1;
     params->value = 0;
     params->relative = 0;
     if (args == NULL)
+    {
+        params->invalid = 0;
         return NULL;
+    }
 
     while (*args == ' ')
         args++;
 
     if (*args < ' ')
+    {
+        params->invalid = 0;
         return NULL;
+    }
 
     if (*args == '+' || *args == '-')
     {
@@ -217,10 +224,22 @@ const char *parse_value_or_reg(const char *args, param_t *params)
      */
     regno = parse_register(args, &args);
     if (regno == -1)
+    {
         params->value = readhex(args, &args);
+        if (args == NULL)
+            return NULL;
+        if (*args > ' ' && *args != '+' && *args != '-')
+        {
+            /* The string might have been 'bob' or similar, where it starts out as a hex but is suffixed */
+            return NULL;
+        }
+    }
     else
+    {
         params->value = fetch_register(regno);
+    }
 
+    params->invalid = 0;
     return args;
 }
 
@@ -240,6 +259,11 @@ int parse_memory_params(const char *args, memory_params_t *memory_params, int de
     args = parse_value_or_reg(args, &base_param);
     args = parse_value_or_reg(args, &other_param);
     args = parse_value_or_reg(args, &third_param);
+
+    if (base_param.invalid ||
+        other_param.invalid ||
+        third_param.invalid)
+        return 0;
 
     if (base_param.relative)
         return 0; /* RISCOSSyntheticError(self.ro, "First parameter must not be relative") */
