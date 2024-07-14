@@ -11,8 +11,8 @@
 
 #define Module_Title		"Debugger"
 #define Module_Help		"Debugger"
-#define Module_VersionString	"0.02"
-#define Module_VersionNumber	2
+#define Module_VersionString	"0.03"
+#define Module_VersionNumber	3
 #ifndef Module_Date
 #define Module_Date		"14 Jul 2024"
 #endif
@@ -83,6 +83,8 @@ _kernel_oserror *Cmd_Memory(const char *arg_string, int argc, int number,
                             void *pw);
 _kernel_oserror *Cmd_MemoryI(const char *arg_string, int argc, int number,
                              void *pw);
+_kernel_oserror *Cmd_MemoryA(const char *arg_string, int argc, int number,
+                             void *pw);
 _kernel_oserror *Cmd_DumpI(const char *arg_string, int argc, int number,
                            void *pw);
 _kernel_oserror *Cmd_InitStore(const char *arg_string, int argc, int number,
@@ -102,12 +104,14 @@ _kernel_oserror *Cmd_ShowRegs(const char *arg_string, int argc, int number,
 #define CMD_Memory (0)
 #undef CMD_MemoryI
 #define CMD_MemoryI (1)
+#undef CMD_MemoryA
+#define CMD_MemoryA (2)
 #undef CMD_DumpI
-#define CMD_DumpI (2)
+#define CMD_DumpI (3)
 #undef CMD_InitStore
-#define CMD_InitStore (3)
+#define CMD_InitStore (4)
 #undef CMD_ShowRegs
-#define CMD_ShowRegs (4)
+#define CMD_ShowRegs (5)
 
 
 /***************************************************************************
@@ -146,10 +150,14 @@ extern void __err_err_CannotParseStarMemory(void); /* &840000 */
 extern void __err_err_CannotParseStarMemoryI(void); /* &840001 */
 extern void __err_err_CannotParseStarDumpI(void); /* &840002 */
 extern void __err_err_BadSyntaxInitStore(void); /* &840003 */
+extern void __err_err_BadSyntaxMemoryA(void); /* &840004 */
+extern void __err_err_MemoryANotInteractive(void); /* &840005 */
 #define err_CannotParseStarMemory ((_kernel_oserror*)(int)__err_err_CannotParseStarMemory)
 #define err_CannotParseStarMemoryI ((_kernel_oserror*)(int)__err_err_CannotParseStarMemoryI)
 #define err_CannotParseStarDumpI ((_kernel_oserror*)(int)__err_err_CannotParseStarDumpI)
 #define err_BadSyntaxInitStore ((_kernel_oserror*)(int)__err_err_BadSyntaxInitStore)
+#define err_BadSyntaxMemoryA ((_kernel_oserror*)(int)__err_err_BadSyntaxMemoryA)
+#define err_MemoryANotInteractive ((_kernel_oserror*)(int)__err_err_MemoryANotInteractive)
 
 #ifdef __cplusplus
 }

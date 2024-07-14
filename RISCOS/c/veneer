@@ -141,6 +141,71 @@ _kernel_oserror *Cmd_Memory(const char *arg_string, int argc, int number,
 
 
 
+/* *MemoryA [B|W|H] <addr1|reg1> [<value|reg2>] */
+_kernel_oserror *Cmd_MemoryA(const char *arg_string, int argc, int number,
+                            void *pw)
+{
+    parsed_arch_t parsed_arch;
+    memory_params_t memory_params;
+    int data_width = 4;
+    int row_width = 16;
+    uint32_t value;
+    int success;
+    uint32_t address;
+    int interactive;
+
+    arg_string = parse_data_width(arg_string, &data_width, data_width);
+
+    {
+        param_t param;
+        arg_string = parse_value_or_reg(arg_string, &param);
+        if (arg_string == NULL || param.invalid)
+            return err_BadSyntaxMemoryA;
+        address = param.value;
+
+        arg_string = parse_value_or_reg(arg_string, &param);
+        if (param.invalid)
+            return err_BadSyntaxMemoryA;
+        if (!arg_string)
+        {
+            interactive = 1;
+        }
+        else
+        {
+            interactive = 0;
+            value = param.value;
+        }
+    }
+
+    if (!interactive)
+    {
+        /* Write the value right now */
+        if (data_width == 1)
+        {
+            *(uint8_t*)address = value;
+            printf("Wrote byte &%lx to &%lx\n", value & 255, address);
+        }
+        else if (data_width == 2)
+        {
+            *(uint16_t*)address = value;
+            printf("Wrote half-word &%lx to &%lx\n", value & 0xFFFF, address);
+        }
+        else if (data_width == 4)
+        {
+            *(uint32_t*)address = value;
+            printf("Wrote word &%lx to &%lx\n", value, address);
+        }
+    }
+    else
+    {
+        return err_MemoryANotInteractive;
+    }
+
+    return NULL;
+}
+
+
+
 
 /* *MemoryI [T|A] <addr1|reg1> [[+|-] <addr2|reg2> [+ <addr3|reg3>]] */
 _kernel_oserror *Cmd_MemoryI(const char *arg_string, int argc, int number,

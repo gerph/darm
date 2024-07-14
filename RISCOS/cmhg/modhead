@@ -61,7 +61,9 @@ error-base: &840000 ; FIXME: Not allocated
 error-identifiers: err_CannotParseStarMemory("Bad *Memory syntax"),
                    err_CannotParseStarMemoryI("Bad *MemoryI syntax"),
                    err_CannotParseStarDumpI("Bad *DumpI syntax"),
-                   err_BadSyntaxInitStore("Bad syntax for *InitStore")
+                   err_BadSyntaxInitStore("Bad syntax for *InitStore"),
+                   err_BadSyntaxMemoryA("Bad syntax for *MemoryA"),
+                   err_MemoryANotInteractive("No support for *MemoryA interactive")
 
 ; When the module is initialised, this routine will be entered. You should
 ; be very careful to initialise your module safely. If anything fails, you
@@ -216,12 +218,16 @@ command-keyword-table: Mod_Command
            invalid-syntax: "Syntax: *MemoryI [T|A] <addr1|reg1> [[+|-] <addr2|reg2> [+ <addr3|reg3>]]",
            help-text: "*MemoryI disassembles memory into instructions (ARM, Thumb).\n",
            handler: Cmd_MemoryI),
+   MemoryA(min-args: 1, max-args: 3, add-syntax:,
+           invalid-syntax: "Syntax: *MemoryA [B|W|H] <addr1|reg1> [<value|reg2>]",
+           help-text: "*MemoryA displays and alters memory.\n",
+           handler: Cmd_MemoryA),
    DumpI(min-args: 1, max-args: 7, add-syntax:,
          invalid-syntax: "Syntax: *DumpI <file> [T|A] <addr1|reg1> [[+|-] <addr2|reg2> [+ <addr3|reg3>]]",
          help-text: "*DumpI disassembles a file into instructions (ARM, Thumb).\n",
          handler: Cmd_DumpI),
    InitStore(min-args: 0, max-args: 1, add-syntax:,
-             invalid-syntax: "Syntax: *InitStore [<value|reg1>]",
+             invalid-syntax: "Syntax: *InitStore [<value|reg>]",
              help-text: "*InitStore initialises the application space with a given value. If not supplied, the value used will be &E7FFFFFF which is an illegal instruction.\n",
              handler: Cmd_InitStore),
    ShowRegs(min-args: 0, max-args: 0, add-syntax:,
