@@ -23,7 +23,7 @@ jobs:
     # The build will terminate if any command returns a non-0 return code or an error.
     script:
       - dir RISCOS
-      - amu -f MakefileLib export
+      - amu -f MakefileLib export_limited
 
       - amu -f MakefileExample
       - amu -f MakefileDisFile
