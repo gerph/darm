@@ -18,6 +18,47 @@ typedef enum disassemble_error_e {
 int get_filetype(const char *filename);
 
 
+
+typedef struct data_accessor_s data_accessor_t;
+
+struct data_accessor_s {
+    int (*read_block)(data_accessor_t *handle, uint32_t address, uint8_t *data, int size);
+};
+
+typedef struct file_accessor_s {
+    data_accessor_t data;
+    FILE *f;
+    uint32_t current_ptr;
+    uint32_t baseaddr;
+    uint32_t filesize;
+} file_accessor_t;
+
+typedef struct memory_accessor_s {
+    data_accessor_t data;
+} memory_accessor_t;
+
+
+/*************************************************** Gerph *********
+ Function:      create_memory_accessor
+ Description:   Initialise a structure that allows access to memory.
+ Parameters:    accessor-> the accessor to initialise
+ Returns:       none
+ ******************************************************************/
+void create_memory_accessor(memory_accessor_t *mem);
+
+/*************************************************** Gerph *********
+ Function:      create_file_accessor
+ Description:   Creates a file accessor for the given file, or returns an error.
+ Parameters:    file-> the accessor to populate
+                startp-> the start address to access (or NULL to ignore)
+                endp-> the end address to access (or NULL it ignore)
+ Returns:       error number, or 0 if none.
+ ******************************************************************/
+disassemble_error_t create_file_accessor(file_accessor_t *file,
+                                         const char *filename,
+                                         uint32_t *startp, uint32_t *endp);
+
+
 /*************************************************** Gerph *********
  Function:      disassemble_file
  Description:   Disassemble a file and print to the screen.

@@ -43,6 +43,35 @@
 #define dprintf if (0) printf
 #endif
 
+#define ErrorNumber_ModuleBadSWI (0x110)
+
+
+/*************************************************** Gerph *********
+ Function:      readline
+ Description:   Call OS_ReadLine for input
+ Parameters:    line-> line to read
+                len = max length including terminator
+ Returns:       1 for success, 0 for failure
+ ******************************************************************/
+int readline(char *line, int len)
+{
+    _kernel_oserror *err;
+    int read;
+    uint32_t flags;
+    err = _swix(OS_ReadLine32, _INR(0, 4)|_OUT(1)|_OUT(_FLAGS), line, len, 32, 128, 0, &read, &flags);
+    if (err && err->errnum == ErrorNumber_ModuleBadSWI)
+    {
+        err = _swix(OS_ReadLine, _INR(0, 4)|_OUT(1)|_OUT(_FLAGS), line, len, 32, 128, 0, &read, &flags);
+    }
+    if (err)
+        return 0;
+    if (flags & _C)
+        return 0;
+    line[read] = '\0';
+    return 1;
+}
+
+
 /***************************************************************************
  * Function:     Mod_Init
  * Description:  Initialise the module, setting up vectors, callbacks and
@@ -198,7 +227,82 @@ _kernel_oserror *Cmd_MemoryA(const char *arg_string, int argc, int number,
     }
     else
     {
-        return err_MemoryANotInteractive;
+        /* When interactive we output a string like:
+            + <address> : <ascii> : <value> : <disassembly>
+           and then:
+            Enter new value :
+         */
+        int quit = 0;
+        int direction = 1;
+        while (!quit)
+        {
+            int success;
+            char line[12];
+            printf("%s ", direction == 1 ? "+" : "-");
+            if (data_width == 2 || data_width == 4)
+            {
+                disassemble_memory(data_width == 2, address, address + data_width);
+            }
+            else
+            {
+                dump_memory(data_width, address, address + data_width);
+            }
+re_enter:
+            printf("Enter a new value : ");
+            success = readline(line, sizeof(line));
+            if (!success)
+                break;
+            if (strcmp(line, "+") == 0)
+            {
+                direction = 1;
+            }
+            else if (strcmp(line, "-") == 0)
+            {
+                direction = -1;
+            }
+            else if (strcmp(line, ".") == 0)
+            {
+                quit = 1;
+            }
+            else if (strcmp(line, "") == 0)
+            {
+                /* Do nothing, go to next location */
+            }
+            else
+            {
+                param_t param;
+                const char *end;
+                end = parse_value_or_reg(line, &param);
+                if (end == NULL || param.invalid)
+                {
+                    printf("Cannot parse string '%s'\n", line);
+                    goto re_enter;
+                }
+                value = param.value;
+
+                /* Write the value into memory */
+                if (data_width == 1)
+                {
+                    *(uint8_t*)address = value;
+                    printf("Wrote byte &%lx to &%lx\n", value & 255, address);
+                }
+                else if (data_width == 2)
+                {
+                    *(uint16_t*)address = value;
+                    printf("Wrote half-word &%lx to &%lx\n", value & 0xFFFF, address);
+                }
+                else if (data_width == 4)
+                {
+                    *(uint32_t*)address = value;
+                    printf("Wrote word &%lx to &%lx\n", value, address);
+                }
+            }
+
+            if (direction == 1)
+                address += data_width;
+            else
+                address -= data_width;
+        }
     }
 
     return NULL;
