@@ -37,6 +37,8 @@ OBJS       = o.disfile \
 		     o.rodis \
 		     o.cli-parser \
 		     o.memoryi \
+		     o.introspection \
+		     o.defaultcpuregs
 
 # Space separated list of XML files for building documentation.
 #DOCSRC = <prm-in-xml-sources>
