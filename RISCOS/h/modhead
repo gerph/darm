@@ -11,10 +11,10 @@
 
 #define Module_Title		"Debugger"
 #define Module_Help		"Debugger"
-#define Module_VersionString	"0.01"
-#define Module_VersionNumber	1
+#define Module_VersionString	"0.02"
+#define Module_VersionNumber	2
 #ifndef Module_Date
-#define Module_Date		"07 Jul 2024"
+#define Module_Date		"14 Jul 2024"
 #endif
 
 #ifdef __cplusplus
