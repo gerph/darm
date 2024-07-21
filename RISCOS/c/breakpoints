@@ -19,11 +19,63 @@ static breakpoint_t *breakpoints;
 
 static int next_number = 1;
 
+/* Encoding values */
+#define BKPT_OPCODE (0xe1200070lu)
+#define BKPT_MASK   (0xFFF000F0lu)
+
 /* Encoding of the BKPT instruction in ARM */
-#define BKPT_INSTRUCTION(number) (0xe1200070lu | ((number) & 0xFlu) | (((number) >> 4)<<8))
+#define BKPT_INSTRUCTION(number) (BKPT_OPCODE | ((number) & 0xFlu) | (((number) >> 4)<<8))
 
 /* Highest breakpoint number we can use */
 #define BKPT_LIMIT (65535)
+
+/* Extract the number from the BKPT instruction */
+#define BKPT_EXTRACT(value) (((value) & 0xFlu) | ((((value)>>8)<<4) & 0xFFF0))
+
+/*************************************************** Gerph *********
+ Function:      breakpoint_annotate
+ Description:   Find a address of a breakpoint and annotate it
+ Parameters:    address = address of instruction
+                data-> the instruction data
+                size = the size of the data
+ Returns:       pointer to a string if annotating, or NULL if not
+ ******************************************************************/
+const char *breakpoint_annotate(uint32_t address, uint8_t *data, int size)
+{
+    static char buffer[256]; /* FIXME: Make this some calculated constant size */
+
+    int number;
+    uint32_t value;
+    if (size != 4)
+        return NULL; /* Not ARM, so not an instruction */
+
+    value = *(uint32_t*)data; /* FIXME: Assumes that the passed data is aligned */
+
+    if ((value & BKPT_MASK) != BKPT_OPCODE)
+        return NULL; /* Not a breakpoint instruction */
+
+    number = BKPT_EXTRACT(value);
+
+    /* Find the breakpoint in the list */
+    {
+        breakpoint_t *bp;
+        for (bp = breakpoints;
+             bp && bp->number != number;
+             bp = bp->next)
+            ;
+
+        if (!bp)
+        {
+            /* Not a known breakpoint */
+            return "Unknown breakpoint";
+        }
+
+        sprintf(buffer, "Old code: %s", debugger_disassemble(bp->old_value, bp->address));
+        return buffer;
+    }
+}
+
+
 
 /*************************************************** Gerph *********
  Function:      breakpoint_set

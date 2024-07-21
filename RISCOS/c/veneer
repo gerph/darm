@@ -242,7 +242,7 @@ _kernel_oserror *Cmd_MemoryA(const char *arg_string, int argc, int number,
             printf("%s ", direction == 1 ? "+" : "-");
             if (data_width == 2 || data_width == 4)
             {
-                disassemble_memory(data_width == 2, address, address + data_width);
+                disassemble_memory(data_width == 2, address, address + data_width, NULL);
             }
             else
             {
@@ -333,7 +333,8 @@ _kernel_oserror *Cmd_MemoryI(const char *arg_string, int argc, int number,
 
     err = disassemble_memory((parsed_arch.arch == arch_thumb) ? 1 : 0,
                              memory_params.base_addr,
-                             memory_params.end_addr);
+                             memory_params.end_addr,
+                             breakpoint_annotate);
 
     return NULL;
 }

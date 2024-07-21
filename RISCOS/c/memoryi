@@ -73,13 +73,16 @@ int memory_read_block(data_accessor_t *handle, uint32_t address, uint8_t *data, 
                 thumb = 1 if we're disassembling thumb
                 start = start address
                 end = end address (or 0xFFFFFFFF for entire file)
+                annotator-> function to provide more annotation for the line,
+                            or NULL for none
  Returns:       error code
  ******************************************************************/
 disassemble_error_t disassemble_stuff(data_accessor_t *accessor, int thumb,
-                                      uint32_t start, uint32_t end)
+                                      uint32_t start, uint32_t end,
+                                      annotator_f annotator)
 {
     /* We write out out disassembly as:
-            ADDR : WORD : text : disassembly
+            ADDR : WORD : text : disassembly[ ; annotation]
      */
     uint32_t word = 0;
     uint32_t address = 0;
@@ -127,7 +130,14 @@ disassemble_error_t disassemble_stuff(data_accessor_t *accessor, int thumb,
 
         {
             const char *dis = disassemble_word(word, address, thumb);
-            printf("%s\n", dis);
+            printf("%s", dis);
+            if (annotator)
+            {
+                const char *annotation = annotator(address, (uint8_t*)&word, instsize);
+                if (annotation)
+                    printf("  ; %s", annotation);
+            }
+            printf("\n");
         }
 
         address += instsize;
@@ -321,7 +331,7 @@ disassemble_error_t disassemble_file(const char *filename, int thumb,
     if (err)
         return err;
 
-    err = disassemble_stuff((data_accessor_t*)&file, thumb, start, end);
+    err = disassemble_stuff((data_accessor_t*)&file, thumb, start, end, NULL);
 
     fclose(file.f);
     return err;
@@ -345,17 +355,21 @@ void create_memory_accessor(memory_accessor_t *mem)
  Parameters:    thumb = 1 if we're disassembling thumb
                 start = start address
                 end = end address (or 0xFFFFFFFF for entire file)
+                annotator-> function to provide more annotation for the line,
+                            or NULL for none
  Returns:       error code
  ******************************************************************/
 disassemble_error_t disassemble_memory(int thumb,
-                                       uint32_t start, uint32_t end)
+                                       uint32_t start, uint32_t end,
+                                       annotator_f annotator)
 {
     disassemble_error_t err;
     memory_accessor_t mem;
 
     create_memory_accessor(&mem);
 
-    err = disassemble_stuff((data_accessor_t*)&mem, thumb, start, end);
+    err = disassemble_stuff((data_accessor_t*)&mem, thumb, start, end,
+                            annotator);
     return err;
 }
 

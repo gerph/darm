@@ -23,6 +23,17 @@ typedef struct breakpoint_s {
 
 
 /*************************************************** Gerph *********
+ Function:      breakpoint_annotate
+ Description:   Find a address of a breakpoint and annotate it
+ Parameters:    address = address of instruction
+                data-> the instruction data
+                size = the size of the data
+ Returns:       pointer to a string if annotating, or NULL if not
+ ******************************************************************/
+const char *breakpoint_annotate(uint32_t address, uint8_t *data, int size);
+
+
+/*************************************************** Gerph *********
  Function:      breakpoint_set
  Description:   Set a breakpoint by writing a BKPT instruction into memory
  Parameters:    address = the address to break at

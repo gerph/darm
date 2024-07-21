@@ -38,6 +38,10 @@ typedef struct memory_accessor_s {
 } memory_accessor_t;
 
 
+/* A function to call to provide an annotation for a given address / data */
+typedef const char *(*annotator_f)(uint32_t address, uint8_t *data, int size);
+
+
 /*************************************************** Gerph *********
  Function:      create_memory_accessor
  Description:   Initialise a structure that allows access to memory.
@@ -77,10 +81,13 @@ disassemble_error_t disassemble_file(const char *filename, int thumb,
  Parameters:    thumb = 1 if we're disassembling thumb
                 start = start address
                 end = end address (or 0xFFFFFFFF for entire file)
+                annotator-> function to provide more annotation for the line,
+                            or NULL for none
  Returns:       error code
  ******************************************************************/
 disassemble_error_t disassemble_memory(int thumb,
-                                       uint32_t start, uint32_t end);
+                                       uint32_t start, uint32_t end,
+                                       annotator_f annotator);
 
 
 
