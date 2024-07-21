@@ -1,0 +1,125 @@
+/*******************************************************************
+ * File:        breakpoints
+ * Purpose:     Deals with managing the breakpoints in the ARM code.
+ * Author:      Gerph
+ * Date:        21 Jul 2024
+ ******************************************************************/
+
+#include <stdlib.h>
+#include <stdio.h>
+
+#include "kernel.h"
+
+#include "modhead.h"
+#include "breakpoints.h"
+#include "rodis.h"
+
+
+static breakpoint_t *breakpoints;
+
+static int next_number = 1;
+
+/* Encoding of the BKPT instruction in ARM */
+#define BKPT_INSTRUCTION(number) (0xe1200070lu | ((number) & 0xFlu) | (((number) >> 4)<<8))
+
+/* Highest breakpoint number we can use */
+#define BKPT_LIMIT (65535)
+
+/*************************************************** Gerph *********
+ Function:      breakpoint_set
+ Description:   Set a breakpoint by writing a BKPT instruction into memory
+ Parameters:    address = the address to break at
+ Returns:       pointer to an error, or NULL if all was well
+ ******************************************************************/
+_kernel_oserror *breakpoint_set(uint32_t address)
+{
+    uint32_t value;
+    int number = next_number++;
+    if (next_number > BKPT_LIMIT)
+        next_number = 1;
+    /* FIXME: We should check that the breakpoint number wasn't reused */
+
+    /* FIXME: We should check that the address isn't already breakpointed */
+
+    /* Replacing the instruction */
+    {
+        /* FIXME: Maybe we should validate this memory first; but a crash here is ok */
+        value = *(uint32_t*)address;
+        *(uint32_t*)address = BKPT_INSTRUCTION(number);
+    }
+
+    {
+        /* Add a breakpoint to the list */
+        breakpoint_t *bp;
+
+        bp = calloc(1, sizeof(*bp));
+        if (bp == NULL)
+            return err_NotEnoughMemory;
+
+        bp->address = address;
+        bp->old_value = value;
+        bp->number = number;
+
+        /* We're adding to the head of the list because it doesn't matter when we search for them whether it's fast
+           or ordered */
+        bp->next = breakpoints;
+        breakpoints = bp;
+    }
+
+    printf("Breakpoint set at &%08lx\n", address);
+
+    return NULL;
+}
+
+
+/*************************************************** Gerph *********
+ Function:      breakpoint_clear
+ Description:   Removes a breakpoint by restoring the old instruction
+ Parameters:    address = the address to break at
+ Returns:       pointer to an error, or NULL if all was well
+ ******************************************************************/
+_kernel_oserror *breakpoint_clear(uint32_t address)
+{
+    breakpoint_t **lastp = &breakpoints;
+    breakpoint_t *bp;
+
+    /* Find the breakpoint in the list */
+    for (bp = breakpoints;
+         bp && bp->address != address;
+         lastp = &bp->next, bp = bp->next)
+        ;
+
+    if (bp == NULL)
+        return err_NoSuchBreakpoint;
+
+    /* Remove the patched instruction */
+    /* FIXME: Should we check that the value is as expected ? */
+    *((uint32_t *)bp->address) = bp->old_value;
+
+    /* Unlink from the list */
+    *lastp = bp->next;
+    free(bp);
+
+    return NULL;
+}
+
+
+/*************************************************** Gerph *********
+ Function:      breakpoint_list
+ Description:   Lists all the breakpoints to the screen
+ Parameters:    address = the address to break at
+ Returns:       pointer to an error, or NULL if all was well
+ ******************************************************************/
+_kernel_oserror *breakpoint_list(void)
+{
+    breakpoint_t *bp;
+
+    for (bp = breakpoints; bp; bp = bp->next)
+    {
+        printf("Breakpoint #%-5i : &%08lx : Old value: &%08lx  : %s\n",
+               bp->number, bp->address, bp->old_value,
+               debugger_disassemble(bp->old_value, bp->address));
+    }
+
+    return NULL;
+}

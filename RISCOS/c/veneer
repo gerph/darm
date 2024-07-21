@@ -19,6 +19,7 @@
 #include "cli-parser.h"
 #include "memoryi.h"
 #include "showregs.h"
+#include "breakpoints.h"
 
 
 /* Number of instructions to disassemble if not supplied */
@@ -407,6 +408,53 @@ _kernel_oserror *Cmd_InitStore(const char *arg_string, int argc, int number,
         *mem = value;
     printf("Store initialised (up to &%08lx) with &%08lx\n", (uint32_t)limit, value);
     return NULL;
+}
+
+
+
+_kernel_oserror *Cmd_BreakSet(const char *arg_string, int argc, int number,
+                              void *pw)
+{
+    _kernel_oserror *err;
+    uint32_t value;
+    param_t param;
+
+    arg_string = parse_value_or_reg(arg_string, &param);
+    if (arg_string == NULL)
+        return err_BadSyntaxBreakpoint;
+    value = param.value;
+
+    err = breakpoint_set(value);
+
+    return err;
+}
+
+
+_kernel_oserror *Cmd_BreakClr(const char *arg_string, int argc, int number,
+                              void *pw)
+{
+    _kernel_oserror *err;
+    uint32_t value;
+    param_t param;
+
+    arg_string = parse_value_or_reg(arg_string, &param);
+    if (arg_string == NULL)
+        return err_BadSyntaxBreakpoint;
+    value = param.value;
+
+    err = breakpoint_clear(value);
+
+    return err;
+}
+
+
+_kernel_oserror *Cmd_BreakList(const char *arg_string, int argc, int number,
+                               void *pw)
+{
+    _kernel_oserror *err;
+    err = breakpoint_list();
+
+    return err;
 }
 
 

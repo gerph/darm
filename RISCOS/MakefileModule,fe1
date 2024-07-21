@@ -36,8 +36,8 @@ CDEFINES   =
 
 # Objects to build, using the format o.<name> (will be varied for build type)
 OBJS       = 			 \
-			 o.modhead \
-			 o.rodis \
+			       o.modhead \
+			       o.rodis \
              o.veneer \
              o.cli-parser \
              o.memoryi \
@@ -45,12 +45,14 @@ OBJS       = 			 \
              o.io \
              o.introspection \
              o.defaultcpuregs \
+             o.breakpoints
 
 
 include CModule
 
 # Additional dependencies
 $(OZDIR).veneer: h.modhead
+$(OZDIR).breakpoints: h.modhead
 
 # Export rules
 # For any files you export with EXPORTS you may need to include an
