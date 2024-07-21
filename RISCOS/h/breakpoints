@@ -22,6 +22,27 @@ typedef struct breakpoint_s {
 } breakpoint_t;
 
 
+
+/*************************************************** Gerph *********
+ Function:      breakpoint_install_prefetch_handler
+ Description:   Add a handler which is called when a Prefetch exception occurs.
+ Parameters:    none
+ Returns:       pointer to error, or NULL if ok
+ ******************************************************************/
+_kernel_oserror *breakpoint_install_prefetch_handler(void);
+
+
+
+/*************************************************** Gerph *********
+ Function:      breakpoint_remove_prefetch_handler
+ Description:   Remove the handler which we registered for Prefetch exceptions.
+ Parameters:    none
+ Returns:       pointer to error, or NULL if ok
+ ******************************************************************/
+_kernel_oserror *breakpoint_remove_prefetch_handler(void);
+
+
+
 /*************************************************** Gerph *********
  Function:      breakpoint_annotate
  Description:   Find a address of a breakpoint and annotate it

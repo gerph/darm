@@ -45,7 +45,8 @@ OBJS       = 			 \
              o.io \
              o.introspection \
              o.defaultcpuregs \
-             o.breakpoints
+             o.breakpoints \
+             o.prefetch
 
 
 include CModule

@@ -1,0 +1,22 @@
+/*******************************************************************
+ * File:        prefetch
+ * Purpose:     Declaration of the exported assembler to handle Prefetch aborts.
+ * Author:      Gerph
+ * Date:        21 Jul 2024
+ ******************************************************************/
+
+#ifndef PREFETCH_H
+#define PREFETCH_H
+
+#include <stdint.h>
+
+typedef struct prefetch_ws_s {
+    uint32_t old_prefetch_handler;
+    uint32_t *exception_dump_area;
+} prefetch_ws_t;
+
+extern void prefetch_handler(void);
+
+extern prefetch_ws_t *get_prefetch_handler_workspace(void);
+
+#endif

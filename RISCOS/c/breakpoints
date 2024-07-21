@@ -9,10 +9,13 @@
 #include <stdio.h>
 
 #include "kernel.h"
+#include "swis.h"
 
 #include "modhead.h"
 #include "breakpoints.h"
 #include "rodis.h"
+#include "prefetch.h"
+#include "introspection.h"
 
 
 static breakpoint_t *breakpoints;
@@ -31,6 +34,73 @@ static int next_number = 1;
 
 /* Extract the number from the BKPT instruction */
 #define BKPT_EXTRACT(value) (((value) & 0xFlu) | ((((value)>>8)<<4) & 0xFFF0))
+
+
+#define ARMEXCEPTION_PREFETCH (3)
+#define CLAIMPROCESSORVECTOR_CLAIM   (1<<8)
+#define CLAIMPROCESSORVECTOR_RELEASE (0<<8)
+
+#define NO_HANDLER (0x00000040lu)
+
+uint32_t old_prefetch_handler = NO_HANDLER;
+
+
+/*************************************************** Gerph *********
+ Function:      breakpoint_install_prefetch_handler
+ Description:   Add a handler which is called when a Prefetch exception occurs.
+ Parameters:    none
+ Returns:       pointer to error, or NULL if ok
+ ******************************************************************/
+_kernel_oserror *breakpoint_install_prefetch_handler(void)
+{
+    _kernel_oserror *err;
+    if (old_prefetch_handler != NO_HANDLER)
+        return NULL;
+
+    err = _swix(OS_ClaimProcessorVector, _INR(0, 1) | _OUT(1),
+                                         ARMEXCEPTION_PREFETCH | CLAIMPROCESSORVECTOR_CLAIM,
+                                         prefetch_handler,
+                                         &old_prefetch_handler);
+    if (err)
+    {
+        old_prefetch_handler = NO_HANDLER;
+        return err;
+    }
+
+    {
+        prefetch_ws_t *ws = get_prefetch_handler_workspace();
+        ws->old_prefetch_handler = old_prefetch_handler;
+        ws->exception_dump_area = get_exception_area();
+    }
+
+    return NULL;
+}
+
+/*************************************************** Gerph *********
+ Function:      breakpoint_remove_prefetch_handler
+ Description:   Remove the handler which we registered for Prefetch exceptions.
+ Parameters:    none
+ Returns:       pointer to error, or NULL if ok
+ ******************************************************************/
+_kernel_oserror *breakpoint_remove_prefetch_handler(void)
+{
+    _kernel_oserror *err;
+    if (old_prefetch_handler == NO_HANDLER)
+        return NULL;
+
+    err = _swix(OS_ClaimProcessorVector, _INR(0, 2),
+                                         ARMEXCEPTION_PREFETCH | CLAIMPROCESSORVECTOR_RELEASE,
+                                         old_prefetch_handler,
+                                         prefetch_handler);
+    if (err)
+    {
+        return err;
+    }
+    old_prefetch_handler = NO_HANDLER;
+
+    return NULL;
+}
+
 
 /*************************************************** Gerph *********
  Function:      breakpoint_annotate
@@ -93,6 +163,13 @@ _kernel_oserror *breakpoint_set(uint32_t address)
 
     /* FIXME: We should check that the address isn't already breakpointed */
 
+    /* Install prefetch handler */
+    {
+        _kernel_oserror *err = breakpoint_install_prefetch_handler();
+        if (err)
+            return err;
+    }
+
     /* Replacing the instruction */
     {
         /* FIXME: Maybe we should validate this memory first; but a crash here is ok */
@@ -151,6 +228,15 @@ _kernel_oserror *breakpoint_clear(uint32_t address)
     /* Unlink from the list */
     *lastp = bp->next;
     free(bp);
+
+    /* If no longer breakpoints, remove the handler */
+    if (!breakpoints)
+    {
+        _kernel_oserror *err;
+        err = breakpoint_remove_prefetch_handler();
+        if (err)
+            return err;
+    }
 
     return NULL;
 }
