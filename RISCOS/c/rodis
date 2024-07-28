@@ -55,6 +55,7 @@ const char *disassemble_word(uint32_t word, uint32_t address, int thumb)
         darm_str2(&d, &str, 1) == 0) {
 
         char mnemonic[12];
+        char newargs[80];
         const char *args = &str.total[strlen(str.mnemonic) + 1];
         strcpy(mnemonic, str.mnemonic);
         if (strncmp(mnemonic, "svc", 3) == 0)
@@ -69,7 +70,62 @@ const char *disassemble_word(uint32_t word, uint32_t address, int thumb)
             if (swiname != NULL)
                 args = swiname;
         }
+        else if ((strncmp(mnemonic, "ldm", 3) == 0 ||
+                  strncmp(mnemonic, "stm", 3) == 0) &&
+                 mnemonic[3] != 'i' &&
+                 mnemonic[3] != 'd')
+        {
+            /* LDM, LDMNE, STM, STMNE, etc */
+            strcat(mnemonic, "ia");
+        }
 
+        if (args[0] == '#' && args[1] == '+')
+        {
+            /* This is a PC relative instruction like B/BL/BLX (or conditional variant) */
+            sprintf(newargs, "&%08lx", address + 8 + d.imm);
+            args = newargs;
+        }
+        else if (strncmp(mnemonic, "adr", 3) == 0)
+        {
+            /* This is a ADR with PC relative reference */
+            char *hashplus;
+            strcpy(newargs, args);
+            hashplus = strstr(newargs, "#+");
+            if (hashplus)
+            {
+                sprintf(hashplus, "&%08lx", d.U ? address + 8 + d.imm : address + 8 - d.imm);
+            }
+            args = newargs;
+        }
+        else if ((strncmp(mnemonic, "ldr", 3) == 0 ||
+                  strncmp(mnemonic, "str", 3) == 0) &&
+                 strstr(args, "pc, #") != NULL)
+        {
+            /* This is a LDR/STR with PC relative reference */
+            char *bracketpc;
+            strcpy(newargs, args);
+            bracketpc = strstr(newargs, "[pc");
+            if (bracketpc)
+            {
+                sprintf(bracketpc, "&%08lx", d.U ? address + 8 + d.imm : address + 8 - d.imm);
+            }
+            args = newargs;
+        }
+
+        /* Tweak the hex notation */
+        {
+            char *zerox = strstr(args, "0x");
+            if (zerox)
+            {
+                int offset = zerox - args;
+                if (args != newargs)
+                    strcpy(newargs, args), args = newargs;
+                newargs[offset] = '&';
+                strcpy(&newargs[offset + 1], &newargs[offset + 2]);
+            }
+        }
+
+        /* Ensure mnemonics are in the correct case */
         {
             char *s;
             for (s = mnemonic; *s; s++)
