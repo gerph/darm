@@ -1,0 +1,92 @@
+/*******************************************************************
+ * File:        breakpoints
+ * Purpose:     Deals with managing the breakpoints in the ARM code.
+ * Author:      Gerph
+ * Date:        21 Jul 2024
+ ******************************************************************/
+
+#ifndef BREAKPOINTS_H
+#define BREAKPOINTS_H
+
+#include <stdint.h>
+
+#include "kernel.h"
+
+
+typedef struct breakpoint_s {
+    struct breakpoint_s *next;
+
+    int      number;
+    uint32_t address;
+    uint32_t old_value;
+} breakpoint_t;
+
+
+
+/*************************************************** Gerph *********
+ Function:      breakpoint_install_prefetch_handler
+ Description:   Add a handler which is called when a Prefetch exception occurs.
+ Parameters:    none
+ Returns:       pointer to error, or NULL if ok
+ ******************************************************************/
+_kernel_oserror *breakpoint_install_prefetch_handler(void);
+
+
+
+/*************************************************** Gerph *********
+ Function:      breakpoint_remove_prefetch_handler
+ Description:   Remove the handler which we registered for Prefetch exceptions.
+ Parameters:    none
+ Returns:       pointer to error, or NULL if ok
+ ******************************************************************/
+_kernel_oserror *breakpoint_remove_prefetch_handler(void);
+
+
+
+/*************************************************** Gerph *********
+ Function:      breakpoint_annotate
+ Description:   Find a address of a breakpoint and annotate it
+ Parameters:    address = address of instruction
+                data-> the instruction data
+                size = the size of the data
+ Returns:       pointer to a string if annotating, or NULL if not
+ ******************************************************************/
+const char *breakpoint_annotate(uint32_t address, uint8_t *data, int size);
+
+
+/*************************************************** Gerph *********
+ Function:      breakpoint_find_by_instruction
+ Description:   Locate the breakpoint block for an instruction
+ Parameters:    instr = the instruction we hit
+ Returns:       pointer to breakpoint_t or NULL if not found.
+ ******************************************************************/
+breakpoint_t *breakpoint_find_by_instruction(uint32_t instr);
+
+
+/*************************************************** Gerph *********
+ Function:      breakpoint_set
+ Description:   Set a breakpoint by writing a BKPT instruction into memory
+ Parameters:    address = the address to break at
+ Returns:       pointer to an error, or NULL if all was well
+ ******************************************************************/
+_kernel_oserror *breakpoint_set(uint32_t address);
+
+
+/*************************************************** Gerph *********
+ Function:      breakpoint_clear
+ Description:   Removes a breakpoint by restoring the old instruction
+ Parameters:    address = the address to break at
+ Returns:       pointer to an error, or NULL if all was well
+ ******************************************************************/
+_kernel_oserror *breakpoint_clear(uint32_t address);
+
+
+/*************************************************** Gerph *********
+ Function:      breakpoint_list
+ Description:   Lists all the breakpoints to the screen
+ Parameters:    address = the address to break at
+ Returns:       pointer to an error, or NULL if all was well
+ ******************************************************************/
+_kernel_oserror *breakpoint_list(void);
+
+#endif

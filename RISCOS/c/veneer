@@ -19,6 +19,9 @@
 #include "cli-parser.h"
 #include "memoryi.h"
 #include "showregs.h"
+#include "breakpoints.h"
+#include "prefetch.h"
+#include "io.h"
 
 
 /* Number of instructions to disassemble if not supplied */
@@ -179,7 +182,6 @@ _kernel_oserror *Cmd_MemoryA(const char *arg_string, int argc, int number,
     int data_width = 4;
     int row_width = 16;
     uint32_t value;
-    int success;
     uint32_t address;
     int interactive;
 
@@ -198,6 +200,7 @@ _kernel_oserror *Cmd_MemoryA(const char *arg_string, int argc, int number,
         if (!arg_string)
         {
             interactive = 1;
+            value = 0;
         }
         else
         {
@@ -241,7 +244,7 @@ _kernel_oserror *Cmd_MemoryA(const char *arg_string, int argc, int number,
             printf("%s ", direction == 1 ? "+" : "-");
             if (data_width == 2 || data_width == 4)
             {
-                disassemble_memory(data_width == 2, address, address + data_width);
+                disassemble_memory(data_width == 2, address, address + data_width, NULL);
             }
             else
             {
@@ -332,7 +335,8 @@ _kernel_oserror *Cmd_MemoryI(const char *arg_string, int argc, int number,
 
     err = disassemble_memory((parsed_arch.arch == arch_thumb) ? 1 : 0,
                              memory_params.base_addr,
-                             memory_params.end_addr);
+                             memory_params.end_addr,
+                             breakpoint_annotate);
 
     return NULL;
 }
@@ -411,6 +415,53 @@ _kernel_oserror *Cmd_InitStore(const char *arg_string, int argc, int number,
 
 
 
+_kernel_oserror *Cmd_BreakSet(const char *arg_string, int argc, int number,
+                              void *pw)
+{
+    _kernel_oserror *err;
+    uint32_t value;
+    param_t param;
+
+    arg_string = parse_value_or_reg(arg_string, &param);
+    if (arg_string == NULL)
+        return err_BadSyntaxBreakpoint;
+    value = param.value;
+
+    err = breakpoint_set(value);
+
+    return err;
+}
+
+
+_kernel_oserror *Cmd_BreakClr(const char *arg_string, int argc, int number,
+                              void *pw)
+{
+    _kernel_oserror *err;
+    uint32_t value;
+    param_t param;
+
+    arg_string = parse_value_or_reg(arg_string, &param);
+    if (arg_string == NULL)
+        return err_BadSyntaxBreakpoint;
+    value = param.value;
+
+    err = breakpoint_clear(value);
+
+    return err;
+}
+
+
+_kernel_oserror *Cmd_BreakList(const char *arg_string, int argc, int number,
+                               void *pw)
+{
+    _kernel_oserror *err;
+    err = breakpoint_list();
+
+    return err;
+}
+
+
+
 _kernel_oserror *Cmd_ShowRegs(const char *arg_string, int argc, int number,
                               void *pw)
 {
@@ -420,6 +471,69 @@ _kernel_oserror *Cmd_ShowRegs(const char *arg_string, int argc, int number,
     get_last_abort_info(&last_abort_info);
 
     cmd_showregs(regdump, &last_abort_info, excdumpregion);
+    return NULL;
+}
+
+
+
+_kernel_oserror *Cmd_Debug(const char *arg_string, int argc, int number,
+                           void *pw)
+{
+    prefetch_ws_t *ws = get_prefetch_handler_workspace();
+    uint32_t bkpt = ws->breakpoint_instruction;
+    breakpoint_t *bp = breakpoint_find_by_instruction(bkpt);
+
+    write("Entering debug shell for breakpoint #");
+    // FIXME: No decimal printing?
+    writeln("");
+    while (!ws->cont)
+    {
+        _kernel_oserror *err;
+        int success;
+        static char line[1024];
+
+        write("Debug *");
+
+        /* Read a line */
+        success = readline(line, sizeof(line));
+        if (!success)
+            break; /* Something went wrong - give up on the shell */
+
+        /* Execute it */
+        err = _swix(OS_CLI, _IN(0), line);
+        if (err)
+        {
+            write("Error: ");
+            write(err->errmess);
+            write(" (&");
+            writehex4(err->errnum);
+            writeln(")");
+        }
+        writeln("");
+    }
+
+    if (ws->cont)
+    {
+        writeln("Continuing from breakpoint");
+    }
+    else
+    {
+        /* Already printing a message in the return from the prefetch abort handler */
+    }
+
+    return NULL;
+}
+
+_kernel_oserror *Cmd_Continue(const char *arg_string, int argc, int number,
+                              void *pw)
+{
+    prefetch_ws_t *ws = get_prefetch_handler_workspace();
+    uint32_t bkpt = ws->breakpoint_instruction;
+    breakpoint_t *bp = breakpoint_find_by_instruction(bkpt);
+
+    /* If we were in a breakpoint and the *Debug was running, we will return back and continue from the prefetch handler */
+    ws->cont = 1;
+    ws->old_instruction = bp->old_value;
     return NULL;
 }
 

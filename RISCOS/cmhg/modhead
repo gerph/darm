@@ -63,7 +63,10 @@ error-identifiers: err_CannotParseStarMemory("Bad *Memory syntax"),
                    err_CannotParseStarDumpI("Bad *DumpI syntax"),
                    err_BadSyntaxInitStore("Bad syntax for *InitStore"),
                    err_BadSyntaxMemoryA("Bad syntax for *MemoryA"),
-                   err_MemoryANotInteractive("No support for *MemoryA interactive")
+                   err_MemoryANotInteractive("No support for *MemoryA interactive"),
+                   err_BadSyntaxBreakpoint("Bad syntax for breakpoints"),
+                   err_NotEnoughMemory("Not enough memory"),
+                   err_NoSuchBreakpoint("No such breakpoint")
 
 ; When the module is initialised, this routine will be entered. You should
 ; be very careful to initialise your module safely. If anything fails, you
@@ -233,7 +236,27 @@ command-keyword-table: Mod_Command
    ShowRegs(min-args: 0, max-args: 0, add-syntax:,
             invalid-syntax: "Syntax: *ShowRegs",
             help-text: "*ShowRegs displays the registers from the last exception.\n",
-            handler: Cmd_ShowRegs)
+            handler: Cmd_ShowRegs),
+   BreakSet(min-args: 1, max-args: 1, add-syntax:,
+            invalid-syntax: "Syntax: *BreakSet [<value|reg>]",
+            help-text: "*BreakSet sets a breakpoint on an address.\n",
+            handler: Cmd_BreakSet),
+   BreakClr(min-args: 1, max-args: 1, add-syntax:,
+            invalid-syntax: "Syntax: *BreakClr [<value|reg>]",
+            help-text: "*BreakClr clears a breakpoint on an address.\n",
+            handler: Cmd_BreakClr),
+   BreakList(min-args: 0, max-args: 0, add-syntax:,
+            invalid-syntax: "Syntax: *BreakList",
+            help-text: "*BreakList lists the currently set breakpoints.\n",
+            handler: Cmd_BreakList),
+   Debug(min-args: 0, max-args: 0, add-syntax:,
+         invalid-syntax: "Syntax: *Debug",
+         help-text: "*Debug is used internally to provide the command line when a breakpoint is reached.\n",
+         handler: Cmd_Debug),
+   Continue(min-args: 0, max-args: 0, add-syntax:,
+         invalid-syntax: "Syntax: *Continue",
+         help-text: "*Continue is used continue execution after a breakpoint has been reached. It only when a breakpoint has been encountered.\n",
+         handler: Cmd_Continue)
 
 ; The module service entry will be called to process services. You are
 ; strongly recommended to include the numbers of the services you wish to

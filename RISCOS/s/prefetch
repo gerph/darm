@@ -1,0 +1,164 @@
+    AREA |Asm$$Code|, CODE, READONLY
+
+    EXPORT prefetch_handler
+    EXPORT get_prefetch_handler_workspace
+
+; MRC     p15, #0, r0, c6, c0, #2   ; read IFAR
+; MRC     p15, #0, r1, c5, c0, #1   ; read IFSR
+
+IFSR_FS_MASK    * (1<<10) :OR: (2_1111<<0)
+IFSR_FS_DEBUG   * (0<<10) :OR: (2_0010<<0)
+
+MODE_MASK       * 2_11111
+MODE_SVC32      * 2_10011
+MODE_IRQ32      * 2_10010
+MODE_USR32      * 2_10000
+
+PSR_I           * 1<<7
+
+OS_WriteS       * 0x20001
+OS_NewLine      * 0x20003
+OS_CLI          * 0x20005
+OS_Exit         * 0x00011
+
+; Prefetch handler is entered in ABT mode.
+; SPSR contains the old mode and processor state.
+; sp_abt is in use.
+; sp_<mode> contains the sp from the old mode
+; IFAR contains the faulting address
+; IFSR contains the status, which for breakpoint will be
+;    (0<<10) | (%0010<<0)
+; r0-r12 contain the registers at time of fault.
+prefetch_handler
+    STMFD   sp!, {r0, r14}
+
+    MRC     p15, 0, r0, c5, c0, 1       ; r0 = IFSR
+    LDR     r14, =IFSR_FS_MASK
+    AND     r0, r0, r14                 ; r0 = FS from IFSR
+    TEQ     r0, #IFSR_FS_DEBUG
+    BEQ     is_a_breakpoint
+
+    LDMFD   sp!, {r0, r14}
+    LDR     pc, prefetch_handler_workspace + 0
+
+is_a_breakpoint
+;    MOV     pc, #0                      ; temporary crash
+
+    LDR     r0, prefetch_handler_workspace + 4
+    STMIB   r0, {r1-r12}
+    LDR     r1, [sp]                    ; old register 0
+    STR     r1, [r0]                    ; store in exception dump area
+
+    MRS     r2, spsr
+    STR     r2, [r0, #16*4]             ; Store SPSR at the end of the register dump
+
+    MRC     p15, 0, r1, c6, c0, 2       ; read IFAR (the pc at the time of the abort)
+    STR     r1, [r0, #15*4]             ; store in the exception dump
+    LDR     r2, [r1]                    ; read the instruction
+    STR     r2, prefetch_handler_workspace + 8
+
+    ADD     sp, sp, #4*2                ; unstack the ABT preserved registers
+
+; need to go to SVC mode in order to call our module code.
+    MRS     r1, cpsr
+    BIC     r1, r1, #MODE_MASK
+    ORR     r1, r1, #MODE_SVC32         ; FIXME: Should probably be SVC<bitness>
+    BIC     r1, r1, #PSR_I              ; enable interrupts
+    MSR     cpsr_cxsf, r1
+
+; Now in SVC32
+; FIXME: This should probably be the stack sequence used by Classic RISC OS
+    STMFD   sp!, {r0, r14}
+
+    STR     r14, [r0, #14*4]            ; store R14_svc in exception dump
+    ; FIXME: May have come from USR mode, not SVC mode.
+    ADD     r1, sp, #4*2
+    STR     r1, [r0, #13*4]             ; store old R13_svc in exception dump
+
+; We might have been in USR32 when the abort happened, so the r14 and the r13 we stashed will be wrong.
+    AND     r2, r2, #MODE_MASK
+    TEQ     r2, #MODE_SVC32
+    BEQ     sp_and_lr_already_stashed
+    TEQ     r2, #MODE_IRQ32
+    BEQ     was_in_irq32
+
+; We were in USR32
+    ADD     r1, r0, #13*4
+    STMIA   r1, {r13, r14}^             ; store the value of R13_usr and R14_usr
+    B       sp_and_lr_already_stashed
+
+was_in_irq32
+    ; FIXME: We don't handle breakpoints in IRQ32 yet.
+    SWI     OS_WriteS
+    = "Breakpoint called in IRQ mode - R13 and R14 are invalid.",0
+    ALIGN
+    SWI     OS_NewLine
+
+sp_and_lr_already_stashed
+
+    SWI     OS_WriteS
+    = "Hit a breakpoint!",0
+    ALIGN
+    SWI     OS_NewLine
+
+    MOV     r0, #0
+    STR     r0, prefetch_handler_workspace + 12     ; clear the 'should we continue' flag.
+
+; FIXME: We could issue a service to say that debugging has been requested.
+; We call *Debug to do the command loop.
+    ADR     r0, gos
+    SWI     OS_CLI
+    BVS     need_to_exit
+
+; Back from *Debug
+    LDMFD   sp!, {r0, r14}                          ; Unstack the preserved registers
+
+; Need to check if we continue or not.
+    LDR     r0, prefetch_handler_workspace + 12     ; *Continue was used
+    TEQ     r0, #0
+    BEQ     need_to_exit
+
+    LDR     r0, prefetch_handler_workspace + 4      ; Exception registers address
+    LDR     r1, [r0, #16*4]                         ; Load old SPSR
+    LDR     r2, [r0, #15*4]                         ; Remember the old breakpoint location
+    ADD     r2, r2, #4                              ; step over the breakpoint
+    STR     r2, prefetch_handler_workspace + 24
+; FIXME: We assume that the register dump remains readable in USR mode
+    MSR     CPSR_cxsf, r1
+    LDMIA   r0, {r0-r14}                            ; restore all registers (bar r15)
+    ADR     r15, prefetch_handler_workspace + 16
+
+    SWI     OS_WriteS
+    = "Should never reach here", 0
+    ALIGN
+    SWI     OS_Exit
+
+need_to_exit
+    SWI     OS_WriteS
+    = "Leaving debug through OS_Exit", 0
+    ALIGN
+    SWI     OS_Exit
+
+gos
+    = "Debug",0
+    ALIGN
+
+
+prefetch_handler_workspace
+    DCD     0                           ; +0  old_prefetch_handler
+    DCD     0                           ; +4  exception dump area (16 + 1 words)
+    DCD     0                           ; +8  breakpoint instruction
+    DCD     0                           ; +12 Should we continue where we left off?
+    DCD     0                           ; +16 old instruction
+    LDR     pc, next_address            ; +20 return to code
+next_address
+    DCD     0                           ; +24 actual location to jump to
+
+get_prefetch_handler_workspace
+    ADR     r0, prefetch_handler_workspace
+    MOV     pc, lr
+
+
+
+
+    END

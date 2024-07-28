@@ -11,10 +11,10 @@
 
 #define Module_Title		"Debugger"
 #define Module_Help		"Debugger"
-#define Module_VersionString	"0.03"
-#define Module_VersionNumber	3
+#define Module_VersionString	"0.04"
+#define Module_VersionNumber	4
 #ifndef Module_Date
-#define Module_Date		"14 Jul 2024"
+#define Module_Date		"28 Jul 2024"
 #endif
 
 #ifdef __cplusplus
@@ -91,6 +91,16 @@ _kernel_oserror *Cmd_InitStore(const char *arg_string, int argc, int number,
                                void *pw);
 _kernel_oserror *Cmd_ShowRegs(const char *arg_string, int argc, int number,
                               void *pw);
+_kernel_oserror *Cmd_BreakSet(const char *arg_string, int argc, int number,
+                              void *pw);
+_kernel_oserror *Cmd_BreakClr(const char *arg_string, int argc, int number,
+                              void *pw);
+_kernel_oserror *Cmd_BreakList(const char *arg_string, int argc, int number,
+                               void *pw);
+_kernel_oserror *Cmd_Debug(const char *arg_string, int argc, int number,
+                           void *pw);
+_kernel_oserror *Cmd_Continue(const char *arg_string, int argc, int number,
+                              void *pw);
 #define help_PRINT_BUFFER		((_kernel_oserror *) arg_string)
 #define arg_CONFIGURE_SYNTAX		((char *) 0)
 #define arg_STATUS			((char *) 1)
@@ -112,6 +122,16 @@ _kernel_oserror *Cmd_ShowRegs(const char *arg_string, int argc, int number,
 #define CMD_InitStore (4)
 #undef CMD_ShowRegs
 #define CMD_ShowRegs (5)
+#undef CMD_BreakSet
+#define CMD_BreakSet (6)
+#undef CMD_BreakClr
+#define CMD_BreakClr (7)
+#undef CMD_BreakList
+#define CMD_BreakList (8)
+#undef CMD_Debug
+#define CMD_Debug (9)
+#undef CMD_Continue
+#define CMD_Continue (10)
 
 
 /***************************************************************************
@@ -152,12 +172,18 @@ extern void __err_err_CannotParseStarDumpI(void); /* &840002 */
 extern void __err_err_BadSyntaxInitStore(void); /* &840003 */
 extern void __err_err_BadSyntaxMemoryA(void); /* &840004 */
 extern void __err_err_MemoryANotInteractive(void); /* &840005 */
+extern void __err_err_BadSyntaxBreakpoint(void); /* &840006 */
+extern void __err_err_NotEnoughMemory(void); /* &840007 */
+extern void __err_err_NoSuchBreakpoint(void); /* &840008 */
 #define err_CannotParseStarMemory ((_kernel_oserror*)(int)__err_err_CannotParseStarMemory)
 #define err_CannotParseStarMemoryI ((_kernel_oserror*)(int)__err_err_CannotParseStarMemoryI)
 #define err_CannotParseStarDumpI ((_kernel_oserror*)(int)__err_err_CannotParseStarDumpI)
 #define err_BadSyntaxInitStore ((_kernel_oserror*)(int)__err_err_BadSyntaxInitStore)
 #define err_BadSyntaxMemoryA ((_kernel_oserror*)(int)__err_err_BadSyntaxMemoryA)
 #define err_MemoryANotInteractive ((_kernel_oserror*)(int)__err_err_MemoryANotInteractive)
+#define err_BadSyntaxBreakpoint ((_kernel_oserror*)(int)__err_err_BadSyntaxBreakpoint)
+#define err_NotEnoughMemory ((_kernel_oserror*)(int)__err_err_NotEnoughMemory)
+#define err_NoSuchBreakpoint ((_kernel_oserror*)(int)__err_err_NoSuchBreakpoint)
 
 #ifdef __cplusplus
 }
