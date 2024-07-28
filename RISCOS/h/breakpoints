@@ -55,6 +55,15 @@ const char *breakpoint_annotate(uint32_t address, uint8_t *data, int size);
 
 
 /*************************************************** Gerph *********
+ Function:      breakpoint_find_by_instruction
+ Description:   Locate the breakpoint block for an instruction
+ Parameters:    instr = the instruction we hit
+ Returns:       pointer to breakpoint_t or NULL if not found.
+ ******************************************************************/
+breakpoint_t *breakpoint_find_by_instruction(uint32_t instr);
+
+
+/*************************************************** Gerph *********
  Function:      breakpoint_set
  Description:   Set a breakpoint by writing a BKPT instruction into memory
  Parameters:    address = the address to break at

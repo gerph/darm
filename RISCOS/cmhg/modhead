@@ -248,7 +248,15 @@ command-keyword-table: Mod_Command
    BreakList(min-args: 0, max-args: 0, add-syntax:,
             invalid-syntax: "Syntax: *BreakList",
             help-text: "*BreakList lists the currently set breakpoints.\n",
-            handler: Cmd_BreakList)
+            handler: Cmd_BreakList),
+   Debug(min-args: 0, max-args: 0, add-syntax:,
+         invalid-syntax: "Syntax: *Debug",
+         help-text: "*Debug is used internally to provide the command line when a breakpoint is reached.\n",
+         handler: Cmd_Debug),
+   Continue(min-args: 0, max-args: 0, add-syntax:,
+         invalid-syntax: "Syntax: *Continue",
+         help-text: "*Continue is used continue execution after a breakpoint has been reached. It only when a breakpoint has been encountered.\n",
+         handler: Cmd_Continue)
 
 ; The module service entry will be called to process services. You are
 ; strongly recommended to include the numbers of the services you wish to

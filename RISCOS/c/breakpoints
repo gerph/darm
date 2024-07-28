@@ -116,6 +116,7 @@ const char *breakpoint_annotate(uint32_t address, uint8_t *data, int size)
 
     int number;
     uint32_t value;
+    breakpoint_t *bp;
     if (size != 4)
         return NULL; /* Not ARM, so not an instruction */
 
@@ -124,27 +125,37 @@ const char *breakpoint_annotate(uint32_t address, uint8_t *data, int size)
     if ((value & BKPT_MASK) != BKPT_OPCODE)
         return NULL; /* Not a breakpoint instruction */
 
-    number = BKPT_EXTRACT(value);
+    bp = breakpoint_find_by_instruction(value);
 
-    /* Find the breakpoint in the list */
+    if (!bp)
     {
-        breakpoint_t *bp;
-        for (bp = breakpoints;
-             bp && bp->number != number;
-             bp = bp->next)
-            ;
-
-        if (!bp)
-        {
-            /* Not a known breakpoint */
-            return "Unknown breakpoint";
-        }
-
-        sprintf(buffer, "Old code: %s", debugger_disassemble(bp->old_value, bp->address));
-        return buffer;
+        /* Not a known breakpoint */
+        return "Unknown breakpoint";
     }
+
+    sprintf(buffer, "Old code: %s", debugger_disassemble(bp->old_value, bp->address));
+    return buffer;
 }
 
+
+/*************************************************** Gerph *********
+ Function:      breakpoint_find_by_instruction
+ Description:   Locate the breakpoint block for an instruction
+ Parameters:    instr = the instruction we hit
+ Returns:       pointer to breakpoint_t or NULL if not found.
+ ******************************************************************/
+breakpoint_t *breakpoint_find_by_instruction(uint32_t instr)
+{
+    int number = BKPT_EXTRACT(instr);
+    breakpoint_t *bp;
+    /* Find the breakpoint in the list */
+    for (bp = breakpoints;
+         bp && bp->number != number;
+         bp = bp->next)
+        ;
+
+    return bp;
+}
 
 
 /*************************************************** Gerph *********
