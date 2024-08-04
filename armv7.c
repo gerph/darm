@@ -108,9 +108,19 @@ static int armv7_disas_uncond(darm_t *d, uint32_t w)
     // values are a bit hardcoded
     switch ((w >> 25) & b111) {
     case b000:
-        d->instr = I_SETEND;
-        d->E = (w >> 9) & 1;
-        return 0;
+        // From: https://developer.arm.com/documentation/ddi0597/2024-06/Base-Instructions/SETEND--Set-Endianness-?lang=en
+        if ((((w >> 20) & b11111) == b10000) &&
+            (w & (1<<16)))
+        {
+            d->instr = I_SETEND;
+            d->E = (w >> 9) & 1;
+            return 0;
+        }
+        else
+        {
+            /* Not SETEND */
+            return -1;
+        }
 
     case b010:
         // if the 21th bit is set, then it's one of the CLREX, DMB, DSB or ISB
