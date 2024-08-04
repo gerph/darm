@@ -131,6 +131,16 @@ const char *disassemble_word(uint32_t word, uint32_t address, int thumb)
                 args = newargs;
             }
         }
+        else if ((mnemonic[0] == 'c' && mnemonic[1] == 'm' && (mnemonic[2] == 'p' ||
+                                                               mnemonic[2] == 'n')) ||
+                 (mnemonic[0] == 't' && mnemonic[1] == 's' && mnemonic[2] == 't') ||
+                 (mnemonic[0] == 't' && mnemonic[1] == 'e' && mnemonic[2] == 'q'))
+        {
+            /* CMP/CMN/TEQ/TST can have a 'P' on them, IF they have 15 in bits 12-15 */
+            uint32_t rd = (word >> 12) & 15;
+            if (rd == 15)
+                strcat(mnemonic, "P");
+        }
 
         /* Tweak the hex notation */
         {

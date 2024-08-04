@@ -594,6 +594,13 @@ static int armv7_disas_cond(darm_t *d, uint32_t w)
         d->Rm = w & b1111;
         d->shift_type = (w >> 5) & b11;
 
+        if (((w >> 12) & b1111) != 0)
+        {
+            /* Rd should be 0; however, on the earlier ARMs a value of 15 indicated the 'P' bit on TEQP */
+            if (((w >> 12) & b1111) != b1111)
+                return -1; /* Undefined instruction */
+        }
+
         // type == 1, shift with the value of the lower bits of Rs
         if(((w >> 4) & 1) == B_SET) {
             d->Rs = (w >> 8) & b1111;
