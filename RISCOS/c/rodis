@@ -111,6 +111,26 @@ const char *disassemble_word(uint32_t word, uint32_t address, int thumb)
             }
             args = newargs;
         }
+        else if ((mnemonic[0] == 'l' && mnemonic[1] == 's' && (mnemonic[2] == 'l' ||
+                                                               mnemonic[2] == 'r')) ||
+                 (mnemonic[0] == 'a' && mnemonic[1] == 's' && mnemonic[2] == 'r') ||
+                 (mnemonic[0] == 'r' && mnemonic[1] == 'o' && (mnemonic[2] == 'l' ||
+                                                               mnemonic[2] == 'r')))
+        {
+            /* Shifts that appear as modern notation ( LSL r0, r0, #3 => MOV r0, r0, LSL #3 ) */
+            char *lastcomma = strrchr(args, ',');
+            if (lastcomma != NULL && lastcomma[1] == ' ')
+            {
+                char *write = &newargs[lastcomma + 2 - args]; /* Points to the '#' in the output */
+                strcpy(newargs, args);
+                *write++ = mnemonic[0];     /* First char of mnemonic */
+                *write++ = mnemonic[1];
+                *write++ = mnemonic[2];
+                strcpy(write, lastcomma + 1);   /* Copy the ' #3' (or register) over */
+                strncpy(mnemonic, "MOV", 3);
+                args = newargs;
+            }
+        }
 
         /* Tweak the hex notation */
         {
