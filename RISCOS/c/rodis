@@ -57,6 +57,8 @@ const char *disassemble_word(uint32_t word, uint32_t address, int thumb)
         char mnemonic[12];
         char newargs[80];
         const char *args = &str.total[strlen(str.mnemonic) + 1];
+        if (args[-1] == '\0')
+            args--;
         strcpy(mnemonic, str.mnemonic);
         if (strncmp(mnemonic, "svc", 3) == 0)
         {
