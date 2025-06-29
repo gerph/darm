@@ -470,7 +470,12 @@ static int armv7_disas_cond(darm_t *d, uint32_t w)
     /* CJF: I cannot work out how those tables confuse these insturctions, so I'm doing some explicit fixup here */
     if( ((w >> 20) & 0xDB) == 0x12 && ((w>>12) & 15) == 15) /* MSR */
     {
-//        printf("Recognised MSR\n");
+        //printf("Recognised MSR\n");
+        d->instr_type = T_ARM_BRNCHMISC;
+    }
+    if( ((w >> 20) & 0xFB) == 0x10 && ((w>>16) & 15) == 15) /* MRS */
+    {
+        //printf("Recognised MRS\n");
         d->instr_type = T_ARM_BRNCHMISC;
     }
 
@@ -552,6 +557,11 @@ static int armv7_disas_cond(darm_t *d, uint32_t w)
     case T_ARM_BRNCHMISC:
         // first get the real instruction label
         d->instr = type_brnchmisc_instr_lookup[(w >> 4) & b1111];
+        if (d->instr == I_MSR)
+        {
+            if (! (w & (1<<21)))
+                d->instr = I_MRS;
+        }
 
         // now we do a switch statement based on the instruction label,
         // rather than some magic values
@@ -569,6 +579,14 @@ static int armv7_disas_cond(darm_t *d, uint32_t w)
         case I_MSR:
             //printf("Recognised as I_MSR register\n");
             d->Rn = w & b1111;
+            d->msrMask = (w >> 16) & b1111; /* this is the mask in the order `FSXC` in binary */
+            d->msrR = (w >> 22) & b1;       /* this is the 'spsr' flag */
+            d->I = B_SET;
+            return 0;
+
+        case I_MRS:
+            //printf("Recognised as I_MRS register\n");
+            d->Rd = (w>>12) & b1111;
             d->msrMask = (w >> 16) & b1111; /* this is the mask in the order `FSXC` in binary */
             d->msrR = (w >> 22) & b1;       /* this is the 'spsr' flag */
             d->I = B_SET;
