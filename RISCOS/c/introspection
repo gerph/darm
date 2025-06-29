@@ -8,8 +8,8 @@
 #include <stdint.h>
 #include "swis.h"
 
-#include "riscos/envnumbers.h"
-#include "riscos/osreadsysinfo.h"
+#include "riscos/EnvNumbers.h"
+#include "riscos/OSReadSysInfo.h"
 
 #include "cpuarchregs.h"
 #include "introspection.h"

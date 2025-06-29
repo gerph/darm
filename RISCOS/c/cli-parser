@@ -9,7 +9,7 @@
 #include <stdlib.h>
 #include "swis.h"
 
-#include "riscos/envnumbers.h"
+#include "riscos/EnvNumbers.h"
 
 #include "cli-parser.h"
 #include "introspection.h"
