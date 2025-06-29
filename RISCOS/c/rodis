@@ -50,6 +50,8 @@ const char *disassemble_word(uint32_t word, uint32_t address, int thumb)
         if (darm_armv7_disasm(&d, word) == 0)
             ok = 1;
     }
+    //if (ok)
+    //    printf("Decoded ok\n");
 
     if (ok &&
         darm_str2(&d, &str, 1) == 0) {

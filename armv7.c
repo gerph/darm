@@ -467,6 +467,13 @@ static int armv7_disas_cond(darm_t *d, uint32_t w)
     d->instr = armv7_instr_labels[(w >> 20) & 0xff];
     d->instr_type = armv7_instr_types[(w >> 20) & 0xff];
 
+    /* CJF: I cannot work out how those tables confuse these insturctions, so I'm doing some explicit fixup here */
+    if( ((w >> 20) & 0xDB) == 0x12 && ((w>>12) & 15) == 15) /* MSR */
+    {
+        printf("Recognised MSR\n");
+        d->instr_type = T_ARM_BRNCHMISC;
+    }
+
     // do a lookup for the type of instruction
     switch ((uint32_t) d->instr_type) {
     case T_ARM_ARITH_SHIFT:
@@ -548,6 +555,7 @@ static int armv7_disas_cond(darm_t *d, uint32_t w)
 
         // now we do a switch statement based on the instruction label,
         // rather than some magic values
+        printf("BRNCHMISC: w>>4 = &%x\n", (w>>4) & 15);
         switch ((uint32_t) d->instr) {
         case I_BKPT:
             d->imm = (((w >> 8) & BITMSK_12) << 4) + (w & b1111);
@@ -559,8 +567,10 @@ static int armv7_disas_cond(darm_t *d, uint32_t w)
             return 0;
 
         case I_MSR:
+            printf("Recognised as I_MSR register\n");
             d->Rn = w & b1111;
-            d->imm = (w >> 18) & b11;
+            d->msrMask = (w >> 16) & b1111; /* this is the mask in the order `FSXC` in binary */
+            d->msrR = (w >> 22) & b1;       /* this is the 'spsr' flag */
             d->I = B_SET;
             return 0;
 
@@ -911,6 +921,13 @@ const char *darm_register_name(darm_reg_t reg)
 {
     return reg != R_INVLD && reg < (int32_t) ARRAYSIZE(darm_registers) ?
         darm_registers[reg] : NULL;
+}
+
+const char *darm_special_register_name(uint32_t r, uint32_t mask)
+{
+    uint32_t together = (r<<4) | mask;
+    return together != R_INVLD && together < (int32_t) ARRAYSIZE(darm_special_registers) ?
+        darm_special_registers[together] : NULL;
 }
 
 const char *darm_shift_type_name(darm_shift_type_t shifttype)
