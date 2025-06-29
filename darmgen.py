@@ -219,6 +219,9 @@ def generate_format_strings(arr):
         '<opc1>', 'p',
         '{,<opc2>}', 'P',
 
+        # Special registers (used in MRS / MSR)
+        '<spec_reg>', 'D',  # 'D' has no meaning; it's just a free letter
+
         # Coprocessor registers CRn, CRm, CRd
         '<CRn>', 'N',
         '<CRm>', 'J',
@@ -713,6 +716,7 @@ if __name__ == '__main__':
     print('extern const char *darm_mnemonics[%d];' % count)
     print('extern const char *darm_enctypes[%d];' % len(instr_types))
     print('extern const char *darm_registers[16];')
+    print('extern const char *darm_special_registers[32];')
 
     print('#endif')
 
@@ -828,6 +832,17 @@ if __name__ == '__main__':
 
     reg = 'r0 r1 r2 r3 r4 r5 r6 r7 r8 r9 r10 r11 r12 SP LR PC'
     print(string_table('darm_registers', reg.split()))
+
+    # Special registers (used for MSR/MRS)
+    sreg =  'CPSR_none CPSR_c CPSR_x CPSR_cx '
+    sreg += 'CPSR_s CPSR_cs CPSR_xs CPSR_cxs '
+    sreg += 'CPSR_f CPSR_cf CPSR_xf CPSR_cxf '
+    sreg += 'CPSR_sf CPSR_csf CPSR_xsf CPSR_cxsf '
+    sreg += 'SPSR_none SPSR_c SPSR_x SPSR_cx '
+    sreg += 'SPSR_s SPSR_cs SPSR_xs SPSR_cxs '
+    sreg += 'SPSR_f SPSR_cf SPSR_xf SPSR_cxf '
+    sreg += 'SPSR_sf SPSR_csf SPSR_xsf SPSR_cxsf'
+    print(string_table('darm_special_registers', sreg.split()))
 
     #
     # thumb-tbl.c

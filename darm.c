@@ -204,7 +204,7 @@ int darm_str(const darm_t *d, darm_str_t *str)
     ptrs = armv7_format_strings[d->instr];
     if(ptrs[0] == NULL) return -1;
 
-    for (ch; (ch = ptrs[idx][off]) != 0; off++) {
+    for (ch='\0'; (ch = ptrs[idx][off]) != 0; off++) {
         switch (ch) {
         case 's':
             if(d->S == B_SET) {
@@ -548,6 +548,11 @@ int darm_str(const darm_t *d, darm_str_t *str)
         case 'I':
             APPEND(args[arg], "cr");
             args[arg] += _utoa(d->CRd, args[arg], 10);
+            arg++;
+            continue;
+
+        case 'D':
+            APPEND(args[arg], darm_special_register_name(d->msrR, d->msrMask));
             arg++;
             continue;
 

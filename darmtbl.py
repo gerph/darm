@@ -60,7 +60,8 @@ msb           = Immediate('msb', 5, 'Most Significant Bit')
 lsb           = Immediate('lsb', 5, 'Least Significant Bit')
 register_list = Immediate('register_list', 16, 'Register List')
 E             = Immediate('E', 1, 'Endian Specifier')
-msr           = Immediate('msr', 2, 'Move to Special Register mask')
+msr           = Immediate('msr', 4, 'Move to Special Register mask')
+msrS          = Immediate('msrS', 1, 'Move to SPSR register')
 rotate        = Immediate('rotate', 2, 'Rotation Type')
 H             = Immediate('H', 1, 'Sign Extension Bit for BL(X)')
 option        = Immediate('option', 4, 'Option for Debug Hint')
@@ -194,10 +195,10 @@ ARMv7 = [
     ('MRC<c> <coproc>,<opc1>,<Rt>,<CRn>,<CRm>{,<opc2>}', cond, 1, 1, 1, 0, CPOpc, 1, CRn, Rt, coproc, opc2, 1, CRm),
     ('MRC2<c> <coproc>,<opc1>,<Rt>,<CRn>,<CRm>{,<opc2>}', 1, 1, 1, 1, 1, 1, 1, 0, CPOpc, 1, CRn, Rt, coproc, opc2, 1, CRm),
     ('MRRC<c> <coproc>,<opc>,<Rt>,<Rt2>,<CRm>', cond, 1, 1, 0, 0, 0, 1, 0, 1, Rt2, Rt, coproc, opc1, CRm),
-    ('MRS<c> <Rd>,<spec_reg>', cond, 0, 0, 0, 1, 0, 0, 0, 0, (1), (1), (1), (1), Rd, (0), (0), (0), (0), 0, 0, 0, 0, (0), (0), (0), (0)),
+    ('MRS<c> <Rd>,<spec_reg>', cond, 0, 0, 0, 1, 0, msrS, 0, 0, (1), (1), (1), (1), Rd, (0), (0), (0), (0), 0, 0, 0, 0, (0), (0), (0), (0)),
     ('MRRC2<c> <coproc>,<opc>,<Rt>,<Rt2>,<CRm>', 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 0, 1, Rt2, Rt, coproc, opc1, CRm),
-    ('MSR<c> <spec_reg>,#<const>', cond, 0, 0, 1, 1, 0, 0, 1, 0, msr, 0, 0, (1), (1), (1), (1), imm12),
-    ('MSR<c> <spec_reg>,<Rn>', cond, 0, 0, 0, 1, 0, 0, 1, 0, msr, 0, 0, (1), (1), (1), (1), (0), (0), (0), (0), 0, 0, 0, 0, Rn),
+    ('MSR<c> <spec_reg>,#<const>', cond, 0, 0, 1, 1, 0, msrS, 1, 0, msr, (1), (1), (1), (1), imm12),
+    ('MSR<c> <spec_reg>,<Rn>', cond, 0, 0, 0, 1, 0, msrS, 1, 0, msr, (1), (1), (1), (1), (0), (0), (0), (0), 0, 0, 0, 0, Rn),
     ('MUL{S}<c> <Rd>,<Rn>,<Rm>', cond, 0, 0, 0, 0, 0, 0, 0, S, Rd, (0), (0), (0), (0), Rm, 1, 0, 0, 1, Rn),
     ('MVN{S}<c> <Rd>,#<const>', cond, 0, 0, 1, 1, 1, 1, 1, S, (0), (0), (0), (0), Rd, imm12),
     ('MVN{S}<c> <Rd>,<Rm>{,<shift>}', cond, 0, 0, 0, 1, 1, 1, 1, S, (0), (0), (0), (0), Rd, imm5, type_, 0, Rm),

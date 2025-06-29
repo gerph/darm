@@ -186,6 +186,8 @@ typedef struct _darm_t {
     darm_reg_t      CRn;
     darm_reg_t      CRm;
     uint32_t        D;
+    uint32_t        msrR;       /* The 'R' bit for the special register on MSR/MRS which means use SPSR */
+    uint32_t        msrMask;    /* The 'mask' bits for the special register on MSR/MRS which indicates which flags to update */
 
     // condition and mask for the IT instruction
     darm_cond_t     firstcond;
@@ -249,6 +251,7 @@ int darm_immshift_decode(const darm_t *d, const char **type,
 const char *darm_mnemonic_name(darm_instr_t instr);
 const char *darm_enctype_name(darm_enctype_t enctype);
 const char *darm_register_name(darm_reg_t reg);
+const char *darm_special_register_name(uint32_t r, uint32_t mask);
 const char *darm_shift_type_name(darm_shift_type_t shifttype);
 
 // postfix for each condition, e.g., EQ, NE
