@@ -470,7 +470,7 @@ static int armv7_disas_cond(darm_t *d, uint32_t w)
     /* CJF: I cannot work out how those tables confuse these insturctions, so I'm doing some explicit fixup here */
     if( ((w >> 20) & 0xDB) == 0x12 && ((w>>12) & 15) == 15) /* MSR */
     {
-        printf("Recognised MSR\n");
+//        printf("Recognised MSR\n");
         d->instr_type = T_ARM_BRNCHMISC;
     }
 
@@ -555,7 +555,7 @@ static int armv7_disas_cond(darm_t *d, uint32_t w)
 
         // now we do a switch statement based on the instruction label,
         // rather than some magic values
-        printf("BRNCHMISC: w>>4 = &%x\n", (w>>4) & 15);
+        //printf("BRNCHMISC: w>>4 = &%x\n", (w>>4) & 15);
         switch ((uint32_t) d->instr) {
         case I_BKPT:
             d->imm = (((w >> 8) & BITMSK_12) << 4) + (w & b1111);
@@ -567,7 +567,7 @@ static int armv7_disas_cond(darm_t *d, uint32_t w)
             return 0;
 
         case I_MSR:
-            printf("Recognised as I_MSR register\n");
+            //printf("Recognised as I_MSR register\n");
             d->Rn = w & b1111;
             d->msrMask = (w >> 16) & b1111; /* this is the mask in the order `FSXC` in binary */
             d->msrR = (w >> 22) & b1;       /* this is the 'spsr' flag */

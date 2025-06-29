@@ -553,6 +553,7 @@ int darm_str(const darm_t *d, darm_str_t *str)
 
         case 'D':
             APPEND(args[arg], darm_special_register_name(d->msrR, d->msrMask));
+            arg++;
             continue;
 
         default:
