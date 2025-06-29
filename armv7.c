@@ -562,6 +562,11 @@ static int armv7_disas_cond(darm_t *d, uint32_t w)
             if (! (w & (1<<21)))
                 d->instr = I_MRS;
         }
+        if (d->instr == I_BX)
+        {
+            if (w & (1<<25))
+                d->instr = I_MSR;
+        }
 
         // now we do a switch statement based on the instruction label,
         // rather than some magic values
@@ -578,10 +583,22 @@ static int armv7_disas_cond(darm_t *d, uint32_t w)
 
         case I_MSR:
             //printf("Recognised as I_MSR register\n");
-            d->Rn = w & b1111;
-            d->msrMask = (w >> 16) & b1111; /* this is the mask in the order `FSXC` in binary */
-            d->msrR = (w >> 22) & b1;       /* this is the 'spsr' flag */
-            d->I = B_SET;
+            if (! (w & (1<<25)))
+            {
+                d->Rn = w & b1111;
+                d->msrMask = (w >> 16) & b1111; /* this is the mask in the order `FSXC` in binary */
+                d->msrR = (w >> 22) & b1;       /* this is the 'spsr' flag */
+                d->I = B_SET;
+            }
+            else
+            {
+                // MRS immediate
+                d->imm = w & BITMSK_12;
+                d->imm = ARMExpandImm(d->imm);
+                d->msrMask = (w >> 16) & b1111; /* this is the mask in the order `FSXC` in binary */
+                d->msrR = (w >> 22) & b1;       /* this is the 'spsr' flag */
+                d->I = B_SET;
+            }
             return 0;
 
         case I_MRS:
@@ -589,7 +606,6 @@ static int armv7_disas_cond(darm_t *d, uint32_t w)
             d->Rd = (w>>12) & b1111;
             d->msrMask = (w >> 16) & b1111; /* this is the mask in the order `FSXC` in binary */
             d->msrR = (w >> 22) & b1;       /* this is the 'spsr' flag */
-            d->I = B_SET;
             return 0;
 
         case I_QSUB: case I_SMLAW: case I_SMULW: default:
