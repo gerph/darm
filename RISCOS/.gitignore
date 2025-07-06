@@ -1,14 +1,18 @@
 h/modhead
 aif/*
 aif32/*
+aif64/*
 o/*
 o32/*
+o64/*
 o32d/*
 od/*
 oz/*
 oz32/*
+oz64/*
 oz32d/*
 ozd/*
 rm/*
 rm32/*
+rm64/*
 

@@ -36,8 +36,8 @@ int main(int argc, char *argv[])
 
     if (argc < 2 | argc > 5)
     {
-        printf("Syntax: %s <filename> [T|A] [<address> [[+|-]<address> [[+|-]<address>]", argv[0]);
-        printf("        %s -dump <filename> [B] [<address> [[+|-]<address> [[+|-]<address>]", argv[0]);
+        printf("Syntax: %s <filename> [T|A] [<address> [[+|-]<address> [[+|-]<address>]\n", argv[0]);
+        printf("        %s -dump <filename> [B] [<address> [[+|-]<address> [[+|-]<address>]\n", argv[0]);
         exit(1);
     }
 

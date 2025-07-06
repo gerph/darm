@@ -1,0 +1,19 @@
+/*******************************************************************
+ * File:        defaultcpuregs
+ * Purpose:     Return the standard CPU register table for ARM32.
+ * Author:      Gerph
+ * Date:        6 Jul 2025
+ ******************************************************************/
+
+#ifndef DEFAULTCPUREGS_H
+#define DEFAULTCPUREGS_H
+
+/*************************************************** Gerph *********
+ Function:      get_default_cpu_registers32
+ Description:   Return the CPU register definition table
+ Parameters:    none
+ Returns:       pointer to the table
+ ******************************************************************/
+const void *get_default_cpu_registers32(void);
+
+#endif

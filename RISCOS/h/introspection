@@ -43,7 +43,7 @@ uint32_t *get_exception_area(void);
  Parameters:    none
  Returns:       pointer to the archregs structure
  ******************************************************************/
-archregs_t *describe_cpu_registers(void);
+const archregs_t *describe_cpu_registers(void);
 
 /*************************************************** Gerph *********
  Function:      get_exception_dump_region

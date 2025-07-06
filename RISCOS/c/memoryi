@@ -27,11 +27,19 @@ int get_filetype(const char *filename)
 int is_escape_pressed(void)
 {
     _kernel_oserror *err;
+#ifdef __riscos64
+    uint32_t flags;
+    err = _swix(OS_ReadEscapeState, _OUT(0), &flags);
+    if (err)
+        return 1;
+    return flags ? 1 : 0;
+#else
     uint32_t flags;
     err = _swix(OS_ReadEscapeState, _OUT(_FLAGS), &flags);
     if (err)
         return 1;
     return (flags & _C) ? 1 : 0;
+#endif
 }
 
 void clear_escape(void)

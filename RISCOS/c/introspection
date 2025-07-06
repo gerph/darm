@@ -13,6 +13,7 @@
 
 #include "cpuarchregs.h"
 #include "introspection.h"
+#include "defaultcpuregs.h"
 
 
 /*************************************************** Gerph *********
@@ -54,14 +55,14 @@ uint32_t *get_exception_area(void)
  Parameters:    none
  Returns:       pointer to the archregs structure
  ******************************************************************/
-archregs_t *describe_cpu_registers(void)
+const archregs_t *describe_cpu_registers(void)
 {
     _kernel_oserror *err;
-    archregs_t *archregs;
+    const archregs_t *archregs;
     err = _swix(OS_PlatformFeatures, _IN(0)|_OUT(0), OS_PlatformFeatures_DescribeCPURegisters, &archregs);
     if (err)
     {
-        archregs = get_default_cpu_registers();
+        archregs = get_default_cpu_registers32();
     }
 
     return archregs;
