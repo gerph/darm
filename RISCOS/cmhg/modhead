@@ -52,21 +52,30 @@ swi-chunk-base-number: &40380
 ; &1B000000- &1BFFFFFF are for program (NOT module) errors.
 ; &80000000- &FFFFFFFF are for serious hardware exceptions.
 ; Consult PRM 1-43, 5a-493 for more details.
-error-base: &840000 ; FIXME: Not allocated
+error-base: &800 ; This is the standard Debugger error base; 64 long.
 
 ; Allocating error messages within the module is more efficient than doing
 ; so manually in your C code, and is less likely to pollute error number
 ; space. The number is optional, and if omitted will be allocated from the
 ; error chunk.
-error-identifiers: err_CannotParseStarMemory("Bad *Memory syntax"),
-                   err_CannotParseStarMemoryI("Bad *MemoryI syntax"),
-                   err_CannotParseStarDumpI("Bad *DumpI syntax"),
-                   err_BadSyntaxInitStore("Bad syntax for *InitStore"),
-                   err_BadSyntaxMemoryA("Bad syntax for *MemoryA"),
-                   err_MemoryANotInteractive("No support for *MemoryA interactive"),
-                   err_BadSyntaxBreakpoint("Bad syntax for breakpoints"),
-                   err_NotEnoughMemory("Not enough memory"),
-                   err_NoSuchBreakpoint("No such breakpoint")
+error-identifiers:  err_BreakNotFound("Breakpoint not found"),
+                    err_InvalidValue("Invalid value"),
+                    err_Resetting("Resetting breakpoint"),
+                    err_NoRoom("No room in breakpoint table"),
+                    err_NoBreakpoints("No breakpoints set"),
+                    err_BadBreakpoint("Bad breakpoint"),
+                    err_Undefined("Undefined breakpoint"),
+                    err_NonAligned("Unaligned address"),
+                    err_NoWorkspace("No room for debug module workspace"),
+                    \
+                    err_CannotParseStarMemory(&801, "Bad *Memory syntax"),
+                    err_CannotParseStarMemoryI(&801, "Bad *MemoryI syntax"),
+                    err_CannotParseStarDumpI(&801, "Bad *DumpI syntax"),
+                    err_BadSyntaxInitStore(&801, "Bad syntax for *InitStore"),
+                    err_BadSyntaxMemoryA(&801, "Bad syntax for *MemoryA"),
+                    err_BadSyntaxBreakpoint(&801, "Bad syntax for breakpoints"),
+                    err_NotEnoughMemory("Not enough memory"),
+                    err_InternalError("Debugger: Internal error")
 
 ; When the module is initialised, this routine will be entered. You should
 ; be very careful to initialise your module safely. If anything fails, you
