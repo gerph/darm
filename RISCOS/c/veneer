@@ -109,6 +109,7 @@ _kernel_oserror *Mod_Init(const char *tail, int podule_base, void *pw)
 _kernel_oserror *Mod_Final(int fatal, int podule_base, void *pw)
 {
     dprintf("Module Debugger dying\n");
+    breakpoint_final();
     return NULL;
 }
 
