@@ -35,9 +35,9 @@ LIBS       = <Lib$Dir>.DARM.o.libDARM
 CDEFINES   =
 
 # Objects to build, using the format o.<name> (will be varied for build type)
-OBJS       = 			 \
-			       o.modhead \
-			       o.rodis \
+OBJS       = \
+			 o.modhead \
+			 o.rodis \
              o.veneer \
              o.cli-parser \
              o.memoryi \
@@ -46,8 +46,11 @@ OBJS       = 			 \
              o.os \
              o.introspection \
              o.defaultcpuregs \
-             o.breakpoints \
-             o.prefetch
+             o.breakpoints
+
+ifndef BUILD64
+OBJS += o.prefetch
+endif
 
 
 include CModule

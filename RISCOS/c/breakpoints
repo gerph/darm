@@ -42,6 +42,9 @@ static int next_number = 1;
 
 #define NO_HANDLER (0x00000040lu)
 
+#ifndef __riscos64
+/* None of this breakpoint code works on RISC OS 64 yet */
+
 uint32_t old_prefetch_handler = NO_HANDLER;
 
 
@@ -278,6 +281,7 @@ _kernel_oserror *breakpoint_list(void)
 
     return NULL;
 }
+#endif
 
 
 /*************************************************** Gerph *********
@@ -288,6 +292,7 @@ _kernel_oserror *breakpoint_list(void)
  ******************************************************************/
 _kernel_oserror *breakpoint_final(void)
 {
+#ifndef __riscos64
     while (breakpoints)
     {
         breakpoint_t *bp = breakpoints;
@@ -303,6 +308,7 @@ _kernel_oserror *breakpoint_final(void)
             return err_InternalError;
         }
     }
+#endif
 
     return NULL;
 }

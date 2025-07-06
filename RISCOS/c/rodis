@@ -16,6 +16,15 @@
 static darm_t d;
 static darm_str_t str;
 
+/* Enable for debugging in this file */
+//#define DEBUG
+
+#ifdef DEBUG
+#define dprintf if (1) printf
+#else
+#define dprintf if (0) printf
+#endif
+
 
 /*************************************************** Gerph *********
  Function:      lookup_swi
@@ -50,8 +59,8 @@ const char *disassemble_word(uint32_t word, uint32_t address, int thumb)
         if (darm_armv7_disasm(&d, word) == 0)
             ok = 1;
     }
-    //if (ok)
-    //    printf("Decoded ok\n");
+    if (ok)
+        dprintf("Decoded ok\n");
 
     if (ok &&
         darm_str2(&d, &str, 1) == 0) {
@@ -70,6 +79,7 @@ const char *disassemble_word(uint32_t word, uint32_t address, int thumb)
             mnemonic[2] = 'i';
 
             /* The SWI number is in the d.imm parameter */
+            dprintf("SWI lookup of #%i\n", d.imm);
             swiname = lookup_swi(d.imm);
             if (swiname != NULL)
                 args = swiname;
@@ -174,6 +184,8 @@ const char *disassemble_word(uint32_t word, uint32_t address, int thumb)
     {
         sprintf(buffer, "Undefined instruction");
     }
+
+    printf("Returning with %s\n", buffer);
 
     return buffer;
 }

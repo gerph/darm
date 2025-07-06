@@ -50,32 +50,6 @@
 #define ErrorNumber_ModuleBadSWI (0x110)
 
 
-/*************************************************** Gerph *********
- Function:      readline
- Description:   Call OS_ReadLine for input
- Parameters:    line-> line to read
-                len = max length including terminator
- Returns:       1 for success, 0 for failure
- ******************************************************************/
-int readline(char *line, int len)
-{
-    _kernel_oserror *err;
-    int read;
-    uint32_t flags;
-    err = _swix(OS_ReadLine32, _INR(0, 4)|_OUT(1)|_OUT(_FLAGS), line, len, 32, 128, 0, &read, &flags);
-    if (err && err->errnum == ErrorNumber_ModuleBadSWI)
-    {
-        err = _swix(OS_ReadLine, _INR(0, 4)|_OUT(1)|_OUT(_FLAGS), line, len, 32, 128, 0, &read, &flags);
-    }
-    if (err)
-        return 0;
-    if (flags & _C)
-        return 0;
-    line[read] = '\0';
-    return 1;
-}
-
-
 /***************************************************************************
  * Function:     Mod_Init
  * Description:  Initialise the module, setting up vectors, callbacks and
@@ -254,7 +228,7 @@ _kernel_oserror *Cmd_MemoryA(const char *arg_string, int argc, int number,
             }
 re_enter:
             printf("Enter a new value : ");
-            success = readline(line, sizeof(line));
+            success = os_readline(line, sizeof(line));
             if (!success)
                 break;
             if (strcmp(line, "+") == 0)
@@ -338,7 +312,12 @@ _kernel_oserror *Cmd_MemoryI(const char *arg_string, int argc, int number,
     err = disassemble_memory((parsed_arch.arch == arch_thumb) ? 1 : 0,
                              memory_params.base_addr,
                              memory_params.end_addr,
-                             breakpoint_annotate);
+#ifdef __riscos64
+                             NULL
+#else
+                             breakpoint_annotate
+#endif
+                             );
 
     return NULL;
 }
@@ -420,6 +399,9 @@ _kernel_oserror *Cmd_InitStore(const char *arg_string, int argc, int number,
 _kernel_oserror *Cmd_BreakSet(const char *arg_string, int argc, int number,
                               void *pw)
 {
+#ifdef __riscos64
+    return err_NotSupported64;
+#else
     _kernel_oserror *err;
     uint32_t value;
     param_t param;
@@ -432,12 +414,16 @@ _kernel_oserror *Cmd_BreakSet(const char *arg_string, int argc, int number,
     err = breakpoint_set(value);
 
     return err;
+#endif
 }
 
 
 _kernel_oserror *Cmd_BreakClr(const char *arg_string, int argc, int number,
                               void *pw)
 {
+#ifdef __riscos64
+    return err_NotSupported64;
+#else
     _kernel_oserror *err;
     uint32_t value;
     param_t param;
@@ -476,16 +462,21 @@ _kernel_oserror *Cmd_BreakClr(const char *arg_string, int argc, int number,
     }
 
     return err;
+#endif
 }
 
 
 _kernel_oserror *Cmd_BreakList(const char *arg_string, int argc, int number,
                                void *pw)
 {
+#ifdef __riscos64
+    return err_NotSupported64;
+#else
     _kernel_oserror *err;
     err = breakpoint_list();
 
     return err;
+#endif
 }
 
 
@@ -507,6 +498,9 @@ _kernel_oserror *Cmd_ShowRegs(const char *arg_string, int argc, int number,
 _kernel_oserror *Cmd_Debug(const char *arg_string, int argc, int number,
                            void *pw)
 {
+#ifdef __riscos64
+    return err_NotSupported64;
+#else
     prefetch_ws_t *ws = get_prefetch_handler_workspace();
     uint32_t bkpt = ws->breakpoint_instruction;
     breakpoint_t *bp = breakpoint_find_by_instruction(bkpt);
@@ -523,7 +517,7 @@ _kernel_oserror *Cmd_Debug(const char *arg_string, int argc, int number,
         write("Debug *");
 
         /* Read a line */
-        success = readline(line, sizeof(line));
+        success = os_readline(line, sizeof(line));
         if (!success)
             break; /* Something went wrong - give up on the shell */
 
@@ -550,11 +544,15 @@ _kernel_oserror *Cmd_Debug(const char *arg_string, int argc, int number,
     }
 
     return NULL;
+#endif
 }
 
 _kernel_oserror *Cmd_Continue(const char *arg_string, int argc, int number,
                               void *pw)
 {
+#ifdef __riscos64
+    return err_NotSupported64;
+#else
     prefetch_ws_t *ws = get_prefetch_handler_workspace();
     uint32_t bkpt = ws->breakpoint_instruction;
     breakpoint_t *bp = breakpoint_find_by_instruction(bkpt);
@@ -563,6 +561,7 @@ _kernel_oserror *Cmd_Continue(const char *arg_string, int argc, int number,
     ws->cont = 1;
     ws->old_instruction = bp->old_value;
     return NULL;
+#endif
 }
 
 

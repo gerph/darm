@@ -75,7 +75,8 @@ error-identifiers:  err_BreakNotFound("Breakpoint not found"),
                     err_BadSyntaxMemoryA(&801, "Bad syntax for *MemoryA"),
                     err_BadSyntaxBreakpoint(&801, "Bad syntax for breakpoints"),
                     err_NotEnoughMemory("Not enough memory"),
-                    err_InternalError("Debugger: Internal error")
+                    err_InternalError("Debugger: Internal error"),
+                    err_NotSupported64("Debugger does not support breakpoints in RISC OS 64")
 
 ; When the module is initialised, this routine will be entered. You should
 ; be very careful to initialise your module safely. If anything fails, you

@@ -18,4 +18,13 @@
  ******************************************************************/
 _kernel_oserror *os_confirm(int *response);
 
+/*************************************************** Gerph *********
+ Function:      os_readline
+ Description:   Call OS_ReadLine for input
+ Parameters:    line-> line to read
+                len = max length including terminator
+ Returns:       1 for success, 0 for failure
+ ******************************************************************/
+int os_readline(char *line, int len);
+
 #endif
