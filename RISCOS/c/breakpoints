@@ -174,6 +174,9 @@ _kernel_oserror *breakpoint_set(uint32_t address)
 
     /* FIXME: We should check that the address isn't already breakpointed */
 
+    if (address & 3)
+        return err_NonAligned;
+
     /* Install prefetch handler */
     {
         _kernel_oserror *err = breakpoint_install_prefetch_handler();
@@ -194,7 +197,7 @@ _kernel_oserror *breakpoint_set(uint32_t address)
 
         bp = calloc(1, sizeof(*bp));
         if (bp == NULL)
-            return err_NotEnoughMemory;
+            return err_NoRoom;
 
         bp->address = address;
         bp->old_value = value;
@@ -223,6 +226,9 @@ _kernel_oserror *breakpoint_clear(uint32_t address)
     breakpoint_t **lastp = &breakpoints;
     breakpoint_t *bp;
 
+    if (address & 3)
+        return err_NonAligned;
+
     /* Find the breakpoint in the list */
     for (bp = breakpoints;
          bp && bp->address != address;
@@ -230,7 +236,7 @@ _kernel_oserror *breakpoint_clear(uint32_t address)
         ;
 
     if (bp == NULL)
-        return err_NoSuchBreakpoint;
+        return err_BreakNotFound;
 
     /* Remove the patched instruction */
     /* FIXME: Should we check that the value is as expected ? */
