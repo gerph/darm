@@ -1,0 +1,21 @@
+/*******************************************************************
+ * File:        os
+ * Purpose:     OS interface veneers
+ * Author:      Gerph
+ * Date:        6 July 2025
+ ******************************************************************/
+
+#ifndef OS_H
+#define OS_H
+
+#include "kernel.h"
+
+/*************************************************** Gerph *********
+ Function:      os_confirm
+ Description:   Get a Y/N response from the user.
+ Parameters:    response-> where to store 'y', 'n' or 27 for response
+ Returns:       pointer to error, or NULL if no error
+ ******************************************************************/
+_kernel_oserror *os_confirm(int *response);
+
+#endif

@@ -43,6 +43,7 @@ OBJS       = 			 \
              o.memoryi \
              o.showregs \
              o.io \
+             o.os \
              o.introspection \
              o.defaultcpuregs \
              o.breakpoints \

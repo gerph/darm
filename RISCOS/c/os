@@ -1,0 +1,27 @@
+/*******************************************************************
+ * File:        os
+ * Purpose:     OS interface veneers
+ * Author:      Gerph
+ * Date:        6 July 2025
+ ******************************************************************/
+
+#include <stdlib.h>
+#include "swis.h"
+
+#include "os.h"
+
+/*************************************************** Gerph *********
+ Function:      os_confirm
+ Description:   Get a Y/N response from the user.
+ Parameters:    response-> where to store 'y', 'n' or 27 for response
+ Returns:       pointer to error, or NULL if no error
+ ******************************************************************/
+_kernel_oserror *os_confirm(int *response)
+{
+    _kernel_oserror *err;
+    *response = 0;
+    err = _swix(OS_Confirm, _OUT(0), response);
+    if (err)
+        return err;
+    return NULL;
+}

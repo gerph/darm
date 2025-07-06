@@ -22,6 +22,7 @@
 #include "breakpoints.h"
 #include "prefetch.h"
 #include "io.h"
+#include "os.h"
 
 
 /* Number of instructions to disassemble if not supplied */
@@ -441,12 +442,38 @@ _kernel_oserror *Cmd_BreakClr(const char *arg_string, int argc, int number,
     uint32_t value;
     param_t param;
 
-    arg_string = parse_value_or_reg(arg_string, &param);
-    if (arg_string == NULL)
-        return err_BadSyntaxBreakpoint;
-    value = param.value;
+    if (argc == 0)
+    {
+        /* Request to clear all breakpoints */
+        int response = 0;
+        _kernel_oserror *err;
 
-    err = breakpoint_clear(value);
+        printf("Clear all breakpoints (y/n) ? ");
+        err = os_confirm(&response);
+        if (err)
+            return err;
+        if (response == 27)
+            printf("Escape\n");
+        else
+            printf("%c\n", response);
+        if (response != 'y')
+        {
+            printf("Not clearing\n");
+            return NULL;
+        }
+        /* Finalising the breakpoint system will remove all the breakpoints and handlers */
+        return breakpoint_final();
+    }
+    else
+    {
+        /* Clear a specific breakpoint */
+        arg_string = parse_value_or_reg(arg_string, &param);
+        if (arg_string == NULL)
+            return err_BadSyntaxBreakpoint;
+        value = param.value;
+
+        err = breakpoint_clear(value);
+    }
 
     return err;
 }
