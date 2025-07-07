@@ -484,7 +484,7 @@ _kernel_oserror *Cmd_BreakList(const char *arg_string, int argc, int number,
 _kernel_oserror *Cmd_ShowRegs(const char *arg_string, int argc, int number,
                               void *pw)
 {
-    unsigned long *regdump = get_exception_area();
+    uint32_t *regdump = get_exception_area();
     excdumpregion_t *excdumpregion = get_exception_dump_region();
     last_abort_info_t last_abort_info;
     get_last_abort_info(&last_abort_info);

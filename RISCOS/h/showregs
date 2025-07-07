@@ -18,7 +18,7 @@
                 excdumpregion -> the exception dump region, or NULL
  Returns:       none
  ******************************************************************/
-void cmd_showregs(unsigned long *regdump,
+void cmd_showregs(uint32_t *regdump,
                   last_abort_info_t *last_abort,
                   excdumpregion_t *excdumpregion);
 

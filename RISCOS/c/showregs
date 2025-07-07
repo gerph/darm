@@ -149,11 +149,11 @@ int write_flag_fields(unsigned long value, archregs_t *archregs, archreg_t *arch
                 excdumpregion -> the exception dump region, or NULL
  Returns:       none
  ******************************************************************/
-void cmd_showregs(unsigned long *regdump,
+void cmd_showregs(uint32_t *regdump,
                   last_abort_info_t *last_abort,
                   excdumpregion_t *excdumpregion)
 {
-    archregs_t *archregs = describe_cpu_registers();
+    archregs_t *archregs = (archregs_t *)describe_cpu_registers();
     archreg_t *archreg;
     archreg_t *archreg_cpsr = NULL;
     int in_flags = 0;
