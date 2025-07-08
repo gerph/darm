@@ -185,7 +185,7 @@ const char *disassemble_word(uint32_t word, uint32_t address, int thumb)
         sprintf(buffer, "Undefined instruction");
     }
 
-    printf("Returning with %s\n", buffer);
+    dprintf("Returning with %s\n", buffer);
 
     return buffer;
 }
