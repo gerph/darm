@@ -1,0 +1,149 @@
+/*******************************************************************
+ * File:        faultinfo
+ * Purpose:     Returns information about the most recent faults (IFSR/DFSR et al)
+ * Author:      Gerph
+ * Date:        13 Jul 2025
+ ******************************************************************/
+
+#include "faultinfo.h"
+#include "systemcontrol.h"
+#include "io.h"
+
+#if 0
+/* Implemented in assembler */
+/*************************************************** Gerph *********
+ Function:      faultinfo_read
+ Description:   Read the fault information into the faultinfo structure
+ Parameters:    faultinfo-> the structure to populate
+ Returns:       none
+ ******************************************************************/
+void faultinfo_read(faultinfo_t *faultinfo)
+#endif
+
+
+static void fsr_writecommon(uint32_t fsr)
+{
+    switch (fsr)
+    {
+        case FSR_FS_ALIGNMENT:
+            write("Alignment");
+            break;
+
+        case FSR_FS_DEBUG:
+            write("Debug event");
+            break;
+
+        case FSR_FS_ACCESS_L1:
+            write("MMU access first level");
+            break;
+
+        case FSR_FS_ACCESS_L2:
+            write("MMU access second level");
+            break;
+
+        case FSR_FS_INSTCACHE:
+            write("Fault on instruction cache maintenance");
+            break;
+
+        case FSR_FS_TRANS_L1:
+            write("MMU translation first level");
+            break;
+
+        case FSR_FS_TRANS_L2:
+            write("MMU translation second level");
+            break;
+
+        case FSR_FS_SYNC:
+            write("Synchronous external abort");
+            break;
+
+        case FSR_FS_DOMAIN_L1:
+            write("MMU domain first level");
+            break;
+
+        case FSR_FS_DOMAIN_L2:
+            write("MMU domain second level");
+            break;
+
+        case FSR_FS_STRANS_L1:
+            write("Synchronous external: translation first level");
+            break;
+
+        case FSR_FS_STRANS_L2:
+            write("Synchronous external: translation second level");
+            break;
+
+        case FSR_FS_PERM_L1:
+            write("MMU permission first level");
+            break;
+
+        case FSR_FS_PERM_L2:
+            write("MMU permission second level");
+            break;
+
+        case FSR_FS_CONFLICT:
+            write("MMU TLB conflict");
+            break;
+
+        case FSR_FS_ASYNC:
+            write("Asynchronous external abort");
+            break;
+
+        case FSR_FS_ASYNC_PAR:
+            write("Asynchronous parity error");
+            break;
+
+        case FSR_FS_SYNC_PAR:
+            write("Synchronous parity error");
+            break;
+
+        case FSR_FS_ASYNC_PAR_TRANS:
+            write("Synchronous parity error: translation first level");
+            break;
+
+        case FSR_FS_SYNC_PAR_TRANS:
+            write("Synchronous parity error: translation second level");
+            break;
+
+        default:
+            write("Fault status &");
+            writehex4(fsr);
+            break;
+    }
+}
+
+
+/*************************************************** Gerph *********
+ Function:      faultinfo_dfsr_writedescription
+ Description:   Writes (to VDU) the description of a DFSR value
+ Parameters:    dfsr = the value of the fault status register
+ Returns:       none
+ ******************************************************************/
+void faultinfo_dfsr_writedescription(uint32_t dfsr)
+{
+    if (dfsr & DFSR_WNR)
+        write("Write, ");
+    else
+        write("Read, ");
+
+    fsr_writecommon(dfsr & DFSR_FS);
+
+    if (dfsr & DFSR_CM)
+        write(", Cache maintenance");
+    if (dfsr & DFSR_EXT)
+        write(", External abort");
+}
+
+/*************************************************** Gerph *********
+ Function:      faultinfo_ifsr_writedescription
+ Description:   Writes (to VDU) the description of a IFSR value
+ Parameters:    ifsr = the value of the fault status register
+ Returns:       none
+ ******************************************************************/
+void faultinfo_ifsr_writedescription(uint32_t ifsr)
+{
+    fsr_writecommon(ifsr & IFSR_FS);
+
+    if (ifsr & IFSR_EXT)
+        write(", External abort");
+}

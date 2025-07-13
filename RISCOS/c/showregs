@@ -10,6 +10,10 @@
 #include "introspection.h"
 #include "io.h"
 
+#ifndef __riscos64
+#include "faultinfo.h"
+#endif
+
 
 /*************************************************** Gerph *********
  Function:      write_flag_fields
@@ -332,7 +336,49 @@ void cmd_showregs(uint32_t *regdump,
         writehex4(last_abort->fault_address);
 #endif
         writeln("");
+
+#ifndef __riscos64
+        {
+            faultinfo_t faultinfo;
+            faultinfo_read(&faultinfo);
+
+            if (faultinfo.dfsr != 0 ||
+                faultinfo.ifsr != 0 ||
+                last_abort->fault_address != 0)
+            {
+                if (last_abort->pc == 0 || faultinfo.dfsr != 0)
+                {
+                    write("  DFSR:   &");
+                    writehex4(faultinfo.dfsr);
+                    write("  (");
+                    faultinfo_dfsr_writedescription(faultinfo.dfsr);
+                    writeln(")");
+                }
+                if (last_abort->pc == 0 || faultinfo.ifsr != 0)
+                {
+                    write("  IFSR:   &");
+                    writehex4(faultinfo.ifsr);
+                    write("  (");
+                    faultinfo_ifsr_writedescription(faultinfo.ifsr);
+                    writeln(")");
+                }
+                if (last_abort->pc == 0 || faultinfo.dfsr != 0)
+                {
+                    write("  DFAR:   &");
+                    writehex4(faultinfo.dfar);
+                    writeln("");
+                }
+                if (last_abort->pc == 0 || faultinfo.ifsr != 0)
+                {
+                    write("  IFAR:   &");
+                    writehex4(faultinfo.ifar);
+                    writeln("");
+                }
+            }
+        }
+#endif
     }
+
 
     if (excdumpregion &&
         excdumpregion->pc == pc &&

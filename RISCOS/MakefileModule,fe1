@@ -49,7 +49,9 @@ OBJS       = \
              o.breakpoints
 
 ifndef BUILD64
-OBJS += o.prefetch
+OBJS += o.prefetch \
+        o.ifsrdfsr \
+        o.faultinfo
 endif
 
 

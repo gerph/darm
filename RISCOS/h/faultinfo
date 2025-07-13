@@ -1,0 +1,42 @@
+/*******************************************************************
+ * File:        faultinfo
+ * Purpose:     Returns information about the most recent faults (IFSR/DFSR et al)
+ * Author:      Gerph
+ * Date:        13 Jul 2025
+ ******************************************************************/
+
+#ifndef FAULTINFO_H
+#define FAULTINFO_H
+
+#include <stdint.h>
+
+typedef struct faultinfo_s {
+    uint32_t ifar, ifsr;
+    uint32_t dfar, dfsr;
+} faultinfo_t;
+
+/*************************************************** Gerph *********
+ Function:      faultinfo_read
+ Description:   Read the fault information into the faultinfo structure
+ Parameters:    faultinfo-> the structure to populate
+ Returns:       none
+ ******************************************************************/
+void faultinfo_read(faultinfo_t *faultinfo);
+
+/*************************************************** Gerph *********
+ Function:      faultinfo_dfsr_writedescription
+ Description:   Writes (to VDU) the description of a DFSR value
+ Parameters:    dfsr = the value of the fault status register
+ Returns:       none
+ ******************************************************************/
+void faultinfo_dfsr_writedescription(uint32_t dfsr);
+
+/*************************************************** Gerph *********
+ Function:      faultinfo_ifsr_writedescription
+ Description:   Writes (to VDU) the description of a IFSR value
+ Parameters:    ifsr = the value of the fault status register
+ Returns:       none
+ ******************************************************************/
+void faultinfo_ifsr_writedescription(uint32_t ifsr);
+
+#endif

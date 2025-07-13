@@ -1,0 +1,68 @@
+/*******************************************************************
+ * File:        systemcontrol
+ * Purpose:     Definitions of the bits in the system control registers
+ * Author:      Gerph
+ * Date:        13 Jul 2025
+ ******************************************************************/
+
+#ifndef SYSTEMCONTROL_H
+#define SYSTEMCONTROL_H
+
+#define b0000 0
+#define b0001 1
+#define b0010 2
+#define b0011 3
+#define b0100 4
+#define b0101 5
+#define b0110 6
+#define b0111 7
+#define b1000 8
+#define b1001 9
+#define b1010 10
+#define b1011 11
+#define b1100 12
+#define b1101 13
+#define b1110 14
+#define b1111 15
+
+/*
+Definitions for the System Control registers (cp15)
+
+Only applies to AArch32.
+*/
+
+// Data Fault Status Register flags
+#define DFSR_CM             (1<<13)                 // Cache maintenance
+#define DFSR_EXT            (1<<12)                 // External abort
+#define DFSR_WNR            (1<<11)                 // Write-not-Read
+#define DFSR_FS             ((1<<10) | (15<<0))     // Fault status (split range bits)
+#define DFSR_DOMAIN_SHIFT   4                       // Domain of fault
+#define DFSR_DOMAIN_MASK    15                      // Mask for the domain
+
+// Instruction Fault Status Register flags
+#define IFSR_EXT                (1<<12)             // External abort
+#define IFSR_FS                 ((1<<10) | (15<<0)) // Fault status (split range bits)
+
+// Fault status register bits
+#define FSR_FS_ALIGNMENT        (0<<10) | (b0001 << 0)     // Alignment fault
+#define FSR_FS_DEBUG            (0<<10) | (b0010 << 0)     // Debug event
+#define FSR_FS_ACCESS_L1        (0<<10) | (b0011 << 0)     // MMU access first level fault
+#define FSR_FS_ACCESS_L2        (0<<10) | (b0110 << 0)     // MMU access second level fault
+#define FSR_FS_INSTCACHE        (0<<10) | (b0100 << 0)     // Fault on instruction cache maintenance
+#define FSR_FS_TRANS_L1         (0<<10) | (b0101 << 0)     // MMU translation first level fault
+#define FSR_FS_TRANS_L2         (0<<10) | (b0111 << 0)     // MMU translation second level fault
+#define FSR_FS_SYNC             (0<<10) | (b1000 << 0)     // Synchronous external abort
+#define FSR_FS_DOMAIN_L1        (0<<10) | (b1001 << 0)     // MMU domain first level fault
+#define FSR_FS_DOMAIN_L2        (0<<10) | (b1011 << 0)     // MMU domain second level fault
+#define FSR_FS_STRANS_L1        (0<<10) | (b1100 << 0)     // Synchronous external fault: translation first level fault
+#define FSR_FS_STRANS_L2        (0<<10) | (b1110 << 0)     // Synchronous external fault: translation second level fault
+#define FSR_FS_PERM_L1          (0<<10) | (b1101 << 0)     // MMU permission first level fault
+#define FSR_FS_PERM_L2          (0<<10) | (b1111 << 0)     // MMU permission second level fault
+#define FSR_FS_CONFLICT         (1<<10) | (b0000 << 0)     // MMU TLB conflict
+#define FSR_FS_ASYNC            (1<<10) | (b0110 << 0)     // Asynchronous external abort
+#define FSR_FS_ASYNC_PAR        (1<<10) | (b1000 << 0)     // Asynchronous parity error
+#define FSR_FS_SYNC_PAR         (1<<10) | (b1001 << 0)     // Synchronous parity error
+#define FSR_FS_ASYNC_PAR_TRANS  (1<<10) | (b1100 << 0)     // Synchronous parity error: translation first level fault
+#define FSR_FS_SYNC_PAR_TRANS   (1<<10) | (b1110 << 0)     // Synchronous parity error: translation second level fault
+
+#endif

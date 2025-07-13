@@ -1,0 +1,29 @@
+
+        AREA |Asm$$Code|, CODE, READONLY
+
+        EXPORT faultinfo_read
+
+; typedef struct faultinfo_s {
+;     uint32_t ifar, ifsr;
+;     uint32_t dfar, dfsr;
+; } faultinfo_t;
+;
+; /*************************************************** Gerph *********
+;  Function:      faultinfo_read
+;  Description:   Read the fault information into the faultinfo structure
+;  Parameters:    faultinfo-> the structure to populate
+;  Returns:       none
+;  ******************************************************************/
+; void faultinfo_read(faultinfo_t *faultinfo);
+faultinfo_read
+        MRC     p15, 0, r1, c6, c0, 2
+        MRC     p15, 0, r2, c5, c0, 1
+        STMIA   r0!, {r1, r2}               ; IFAR and IFSR stored in block
+
+        MRC     p15, 0, r1, c6, c0, 0
+        MRC     p15, 0, r2, c5, c0, 0
+        STMIA   r0!, {r1, r2}               ; DFAR and DFSR stored in block
+
+        MOV     pc, lr
+
+        END
