@@ -32,7 +32,12 @@
 #define APPLICATION_SPACE_BASE (0x8000)
 
 /* Invalid instruction to use by default in *InitStore */
-#define DEFAULT_INITSTORE_VALUE (0xE7FFFFFF)
+#ifdef __riscos64
+/* https://developer.arm.com/documentation/ddi0602/2022-03/Base-Instructions/UDF--Permanently-Undefined- */
+#define DEFAULT_INITSTORE_VALUE (0x0000FFFF) /* AArch64 value */
+#else
+#define DEFAULT_INITSTORE_VALUE (0xE7FFFFFF) /* AArch32 value */
+#endif
 
 /* Number of rows to dump in *Memory by default */
 #define MEMORY_DEFAULT_SIZE (40)

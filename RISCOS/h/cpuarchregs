@@ -38,18 +38,18 @@ typedef struct archregproto_s {
     int defid:24;
     int deftype:8;
 
-    unsigned long name_offset;
-    unsigned long regdump_offset;
+    uint32_t name_offset;
+    uint32_t regdump_offset;
 
-    unsigned long flags;
+    uint32_t flags;
 } archregproto_t;
 
 typedef struct archregister_s {
     int regid:24;
     int deftype:8;
 
-    unsigned long name_offset;
-    unsigned long regdump_offset;
+    uint32_t name_offset;
+    uint32_t regdump_offset;
 
     int bitwidth:12;
     int regtype:4;
@@ -64,8 +64,8 @@ typedef struct archregflag_s {
     int is_value:1;
     int deftype:8;
 
-    unsigned long name_offset;
-    unsigned long regdump_offset;
+    uint32_t name_offset;
+    uint32_t regdump_offset;
 
     int bitwidth:12;
     int reserved:20;
@@ -73,7 +73,7 @@ typedef struct archregflag_s {
 
 typedef struct archreg_s {
     union {
-        int terminator;
+        uint32_t terminator;
         archregproto_t proto;
         archregister_t regdef;
         archregflag_t flagdef;
@@ -82,9 +82,9 @@ typedef struct archreg_s {
 
 typedef struct archregs_s {
     archid_t archid;
-    int instruction_min_bytes;
-    int instruction_max_bytes;
-    int regdump_size;
+    int32_t instruction_min_bytes;
+    int32_t instruction_max_bytes;
+    int32_t regdump_size;
     archreg_t defs[1];
 } archregs_t;
 

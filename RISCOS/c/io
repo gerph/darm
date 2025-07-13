@@ -7,6 +7,8 @@
 
 #include <stdio.h>
 
+#include "io.h"
+
 void write(const char *s)
 {
     printf("%s", s);
@@ -27,12 +29,12 @@ void writeln(const char *s)
 }
 
 #define HEX(x) ("0123456789ABCDEF"[(x) & 0xF])
-void writehex1(unsigned long value)
+void writehex1(uint32_t value)
 {
     writec(HEX(value>>4));
     writec(HEX(value));
 }
-void writehex2(unsigned long value)
+void writehex2(uint32_t value)
 {
     char buf[5];
     buf[0] = HEX(value>>12);
@@ -42,7 +44,7 @@ void writehex2(unsigned long value)
     buf[4] = 0;
     write(buf);
 }
-void writehex4(unsigned long value)
+void writehex4(uint32_t value)
 {
     char buf[9];
     buf[0] = HEX(value>>28);
@@ -56,3 +58,27 @@ void writehex4(unsigned long value)
     buf[8] = 0;
     write(buf);
 }
+#ifdef __riscos64
+void writehex8(uint64_t value)
+{
+    char buf[17];
+    buf[0] = HEX(value>>60);
+    buf[1] = HEX(value>>56);
+    buf[2] = HEX(value>>52);
+    buf[3] = HEX(value>>48);
+    buf[4] = HEX(value>>44);
+    buf[5] = HEX(value>>40);
+    buf[6] = HEX(value>>36);
+    buf[7] = HEX(value>>32);
+    buf[8] = HEX(value>>28);
+    buf[9] = HEX(value>>24);
+    buf[10] = HEX(value>>20);
+    buf[11] = HEX(value>>16);
+    buf[12] = HEX(value>>12);
+    buf[13] = HEX(value>>8);
+    buf[14] = HEX(value>>4);
+    buf[15] = HEX(value>>0);
+    buf[16] = 0;
+    write(buf);
+}
+#endif

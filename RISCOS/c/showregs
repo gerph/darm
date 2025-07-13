@@ -232,18 +232,27 @@ void cmd_showregs(uint32_t *regdump,
                     }
                     else if (archreg->archreg.regdef.bitwidth <= 16)
                     {
-                        value = *(unsigned short *)dumpptr;
+                        value = *(uint16_t *)dumpptr;
                         value = value & ((1ul<<archreg->archreg.regdef.bitwidth) - 1);
                         writehex2(value);
                         valuelen = 4;
                     }
                     else if (archreg->archreg.regdef.bitwidth <= 32)
                     {
-                        value = *(unsigned long *)dumpptr;
+                        value = *(uint32_t *)dumpptr;
                         value = value & ((1ul<<archreg->archreg.regdef.bitwidth) - 1);
                         writehex4(value);
                         valuelen = 8;
                     }
+#ifdef __riscos64
+                    else if (archreg->archreg.regdef.bitwidth <= 64)
+                    {
+                        value = *(uint64_t *)dumpptr;
+                        value = value & ((1ul<<archreg->archreg.regdef.bitwidth) - 1);
+                        writehex8(value);
+                        valuelen = 8;
+                    }
+#endif
                     else
                     {
                         write("?");
@@ -299,6 +308,10 @@ void cmd_showregs(uint32_t *regdump,
                 writehex2(last_abort->pc);
             else if (pc_bitwidth <= 32)
                 writehex4(last_abort->pc);
+#ifdef __riscos64
+            else if (pc_bitwidth <= 64)
+                writehex8(last_abort->pc);
+#endif
             writeln("");
         }
 
@@ -313,7 +326,11 @@ void cmd_showregs(uint32_t *regdump,
         }
 
         write("  Fault:  &");
+#ifdef __riscos64
+        writehex8(last_abort->fault_address);
+#else
         writehex4(last_abort->fault_address);
+#endif
         writeln("");
     }
 

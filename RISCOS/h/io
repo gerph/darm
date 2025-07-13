@@ -8,13 +8,18 @@
 #ifndef IO_H
 #define IO_H
 
+#include <stdint.h>
+
 void write(const char *s);
 void writec(char c);
 void newline(void);
 void writeln(const char *s);
 
-void writehex1(unsigned long value);
-void writehex2(unsigned long value);
-void writehex4(unsigned long value);
+void writehex1(uint32_t value);
+void writehex2(uint32_t value);
+void writehex4(uint32_t value);
+#ifdef __riscos64
+void writehex8(uint64_t value);
+#endif
 
 #endif
