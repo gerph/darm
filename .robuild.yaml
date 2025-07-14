@@ -23,15 +23,33 @@ jobs:
     # The build will terminate if any command returns a non-0 return code or an error.
     script:
       - dir RISCOS
+      - echo *** Export the library
       - amu -f MakefileLib export_limited
 
+      - echo *** Build the example
       - amu -f MakefileExample
+
+      - echo *** Build the DisFile tool
       - amu -f MakefileDisFile
+
+      - echo *** Build the module
       - amu -f MakefileModule
 
+      - echo *** Export the built versions
       - cdir ^.Artifacts
       - copy rm32.Debugger ^.Artifacts.Debugger ~CV~RF
       - copy aif32.DisFile ^.Artifacts.DisFile ~CV~RF
+
+      - echo *** Load the module to check that it works
+      - RMLoad rm32.Debugger
+
+      - echo *** Exercise *Memory
+      - Memory 8000 +16
+
+      - echo *** Exercise *MemoryI
+      - MemoryI 8000 +16
+
+      - echo *** Simple smoketests complete
 
     # Outputs from the build are defined in artifacts
     # These are a list of artifacts to report directories or files.
