@@ -38,6 +38,7 @@ CDEFINES   =
 OBJS       = \
 			 o.modhead \
 			 o.rodis \
+			 o.fpa \
              o.veneer \
              o.cli-parser \
              o.memoryi \
@@ -53,6 +54,9 @@ OBJS += o.prefetch \
         o.ifsrdfsr \
         o.faultinfo
 endif
+
+# Allow snprintf to be used
+CLIBTYPE   = generic
 
 
 include CModule
