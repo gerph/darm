@@ -409,19 +409,3 @@ bool disassemble_fpa(uint32_t address, uint32_t word, char *buffer, int bufferle
     ACCUMULATE('\0');
     return (out <= end) ? true : false;
 }
-
-
-/*
-
-    def disassemble_fpa_instruction(self, i, mnemonic, op_str):
-        word = struct.unpack('<L', i.bytes)[0]
-
-        opcode = (word>>24) & 15
-
-
-
-
-
-        return (mnemonic, op_str, None)
-
-*/
