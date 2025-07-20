@@ -21,6 +21,42 @@ static const char *fpregs[] = {
     "F0", "F1", "F2", "F3", "F4", "F5", "F6", "F7"
 };
 
+static const char *fpdo_mnemonic[] = {
+    "ADF",  // ... binary ops
+    "MUF",
+    "SUF",
+    "RSF",
+    "DVF",
+    "RDF",
+    "POW",
+    "RPW",
+    "RMF",
+    "FML",
+    "FDV",
+    "FRD",
+    "POL",
+    "F0D",  // ... undefined binary ops
+    "F0E",
+    "F0F",
+    "MVF",  // ... unary ops
+    "MNF",
+    "ABS",
+    "RND",
+    "SQT",
+    "LOG",
+    "LGN",
+    "EXP",
+    "SIN",
+    "COS",
+    "TAN",
+    "ASN",
+    "ACS",
+    "ATN",
+    "URD",
+    "NRM",
+};
+
+
 /*************************************************** Gerph *********
  Function:      operand_fm
  Description:   Decode an floating point operand register
@@ -213,6 +249,49 @@ bool disassemble_fpa(uint32_t address, uint32_t word, char *buffer, int bufferle
             out += snprintf(out, end - out, "[%s], #%i", armregname(armreg), offset);
         }
     }
+    else if (opcode == 14 &&
+             ((word>>8) & 15) == 1 &&
+             ((word>>4) & 1) == 0)
+    {
+        /* format is        cccc 1110 abcd ennn jddd 0001 fgh0 immm
+         *
+         * <Dyadic op>{cond}<S|D|E>{P|M|Z} Fd,Fn,<Fm|#constant>
+         * <Monadic op>{cond}<S|D|E>{P|M|Z} Fd,<Fm|#constant>
+         *
+         * where cccc = condition
+         *       abcd = opcode
+         *         ef = destination size
+         *         gh = rounding mode
+         *       immm = Fm/constant
+         *        nnn = Fn
+         *        ddd = Fd
+         *          j = Monadic/~Dyadic
+         */
+        uint32_t opcode = (word >> 20) & 15;
+        char length = "SDEx"[((word>>18) & 2) + ((word>>7) & 1)];
+        // length 3 is invalid
+        char rounding = " PMZ"[(word>>5) & 3];
+        // rounding 0 has no symbol?
+        uint32_t fpregn = (word >> 16) & 7;
+        uint32_t fpregd = (word >> 12) & 7;
+        uint32_t monadic = (word>>15) & 1;
+        const char *cc = conditioncode(word >> 28);
+        const char *mnemonic = fpdo_mnemonic[opcode | (monadic<<4)];
+        const char *operand;
+
+        out += snprintf(out, end - out, "%s%s%c%c", mnemonic, cc, length, rounding);
+        out += snprintf(out, end - out, "%*s", 8 - (out-buffer), "");
+
+        operand = operand_fm(word);
+        if (monadic)
+        {
+            out += snprintf(out, end - out, "%s, %s", fpregs[fpregd], operand);
+        }
+        else
+        {
+            out += snprintf(out, end - out, "%s, %s, %s", fpregs[fpregd], fpregs[fpregn], operand);
+        }
+    }
     else
     {
         return false;
@@ -230,49 +309,6 @@ bool disassemble_fpa(uint32_t address, uint32_t word, char *buffer, int bufferle
         opcode = (word>>24) & 15
 
 
-
-        elif opcode in (12, 13) and (word>>8) & 15 == 2:
-            # LFM/SFM
-            # format is        cccc 110p uywl nnnn xddd 0010 iiii iiii
-            #
-            # <LFM|SFM>{cond} Fd,count,[Rn, #imm]{!}
-            # <LFM|SFM>{cond} Fd,count,[Rn],#imm
-            #
-            # where cccc = condition
-            #          p = Pre-indexed/~Post-indexed
-            #          u = Up/~Down
-            #         yx = register count (4,1,2 or 3)
-            #          w = Writeback
-            #          l = Load/~Store
-            #       nnnn = Rn
-            #        ddd = Fd
-            #   iiiiiiii = immediate offset
-            cc = self.cc_values[word>>28]
-            if cc == 'AL':
-                cc = ''
-            mnemonic = 'LFM' if word & (1<<20) else 'SFM'
-            # Count bits are not contiguous
-            count = (((word >> 21) & 2) + ((word >> 15) & 1))
-            preindex = word & (1<<24)
-            up = word & (1<<23)
-            armreg = (word>>16) & 15
-            fpreg = (word>>12) & 7
-            offset = (word & 255) * 4
-            if not up:
-                offset = -offset
-            writeback = word & (1<<21)
-            mnemonic = "{}{}".format(mnemonic, cc)
-            if preindex:
-                if armreg == 15:
-                    access = "&{:08x}".format(i.address + 8 + offset)
-                else:
-                    if offset == 0:
-                        access = "[R{}]{}".format(armreg, "!" if writeback else "")
-                    else:
-                        access = "[R{}, #{}]{}".format(armreg, offset, "!" if writeback else "")
-            else:
-                access = "[R{}], #{}".format(armreg, offset)
-            op_str = "F{}, {}, {}".format(fpreg, count, access)
 
         elif opcode == 14 and (word>>8) & 15 == 1 and (word>>4) & 1 == 0:
             # format is        cccc 1110 abcd ennn jddd 0001 fgh0 immm

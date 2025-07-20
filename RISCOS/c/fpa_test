@@ -62,6 +62,40 @@ int main(int argc, char *argv[])
     test_decode(0x00001b00, 0xedf21201, "LFM     F1, 2, [r2, #4]!");
     test_decode(0x00001b04, 0xedc21200, "SFM     F1, 2, [r2]");
 
+    printf("--- Binary ops ---\n");
+    test_decode(0x00001b70, 0xee021103, "ADFS    F1, F2, F3");
+    test_decode(0x00001b74, 0xee121103, "MUFS    F1, F2, F3");
+    test_decode(0x00001b78, 0xee221103, "SUFS    F1, F2, F3");
+    test_decode(0x00001b7c, 0xee321103, "RSFS    F1, F2, F3");
+    test_decode(0x00001b80, 0xee421103, "DVFS    F1, F2, F3");
+    test_decode(0x00001b84, 0xee521103, "RDFS    F1, F2, F3");
+    test_decode(0x00001b88, 0xee621103, "POWS    F1, F2, F3");
+    test_decode(0x00001b8c, 0xee721103, "RPWS    F1, F2, F3");
+    test_decode(0x00001b90, 0xee821103, "RMFS    F1, F2, F3");
+    test_decode(0x00001b94, 0xee921103, "FMLS    F1, F2, F3");
+    test_decode(0x00001b98, 0xeea21103, "FDVS    F1, F2, F3");
+    test_decode(0x00001b9c, 0xeeb21103, "FRDS    F1, F2, F3");
+    test_decode(0x00001ba0, 0xeec21103, "POLS    F1, F2, F3");
+
+    printf("--- Unary ops ---\n");
+    test_decode(0x00001e24, 0xee009102, "MVFS    F1, F2");
+    test_decode(0x00001e28, 0xee109102, "MNFS    F1, F2");
+    test_decode(0x00001e2c, 0xee209102, "ABSS    F1, F2");
+    test_decode(0x00001e30, 0xee309102, "RNDS    F1, F2");
+    test_decode(0x00001e34, 0xee409102, "SQTS    F1, F2");
+    test_decode(0x00001e38, 0xee509102, "LOGS    F1, F2");
+    test_decode(0x00001e3c, 0xee609102, "LGNS    F1, F2");
+    test_decode(0x00001e40, 0xee709102, "EXPS    F1, F2");
+    test_decode(0x00001e44, 0xee809102, "SINS    F1, F2");
+    test_decode(0x00001e48, 0xee909102, "COSS    F1, F2");
+    test_decode(0x00001e4c, 0xeea09102, "TANS    F1, F2");
+    test_decode(0x00001e50, 0xeeb09102, "ASNS    F1, F2");
+    test_decode(0x00001e54, 0xeec09102, "ACSS    F1, F2");
+    test_decode(0x00001e58, 0xeed09102, "ATNS    F1, F2");
+    test_decode(0x00001e5c, 0xeee09102, "URDS    F1, F2");
+    test_decode(0x00001e60, 0xeef09102, "NRMS    F1, F2");
+
+
     printf("--- Results ---\n");
     printf("Pass: %i\n", pass);
     printf("Fail: %i\n", fail);
