@@ -12,6 +12,7 @@
 #include "swis.h"
 
 #include "darm.h"
+#include "fpa.h"
 
 static darm_t d;
 static darm_str_t str;
@@ -45,19 +46,26 @@ const char *lookup_swi(uint32_t swinum)
 
 const char *disassemble_word(uint32_t word, uint32_t address, int thumb)
 {
-    int ok;
+    bool ok;
     static char buffer[128];
 
-    ok = 0;
+    ok = disassemble_fpa(address, word, buffer, sizeof(buffer));
+    if (ok)
+    {
+        dprintf("Decoded %08x as a FP instruction\n", word);
+        return buffer;
+    }
+
+    ok = false;
     if (thumb)
     {
         if (darm_thumb_disasm(&d, (uint16_t)word) == 0)
-            ok = 1;
+            ok = true;
     }
     else
     {
         if (darm_armv7_disasm(&d, word) == 0)
-            ok = 1;
+            ok = true;
     }
     if (ok)
         dprintf("Decoded ok\n");

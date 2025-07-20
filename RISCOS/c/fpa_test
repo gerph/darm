@@ -1,0 +1,139 @@
+/*******************************************************************
+ * File:        fpa_test
+ * Purpose:     Test that the FPA_decoding returns sensible strings
+ * Author:      Gerph
+ * Date:        20 Jul 2025
+ ******************************************************************/
+
+#include <stdio.h>
+#include <string.h>
+
+#include "fpa.h"
+
+int pass = 0;
+int fail = 0;
+
+void test_decode(uint32_t address, uint32_t word, const char *expect)
+{
+    char buffer[256];
+    bool ok;
+
+    printf("Decode %08x : ", word);
+    ok = disassemble_fpa(address, word, buffer, sizeof(buffer));
+    if (!ok)
+    {
+        printf("Failed to decode\n");
+    }
+    else
+    {
+        printf("%-28s : ", buffer);
+        if (strcmp(buffer, expect) == 0)
+        {
+            printf("OK\n");
+            pass++;
+        }
+        else
+        {
+            printf("FAILED (expected: '%s')\n", expect);
+            fail++;
+        }
+    }
+
+}
+
+int main(int argc, char *argv[])
+{
+    printf("--- LDF/STF ---\n");
+    test_decode(0x000019e0, 0xed921100, "LDFS    F1, [r2]");
+    test_decode(0x000019e4, 0xed921101, "LDFS    F1, [r2, #4]");
+    test_decode(0x000019e8, 0xed121101, "LDFS    F1, [r2, #-4]");
+    test_decode(0x000019ec, 0xedb21101, "LDFS    F1, [r2, #4]!");
+    test_decode(0x000019f0, 0xecb21101, "LDFS    F1, [r2], #4");
+    test_decode(0x000019f4, 0xed929100, "LDFD    F1, [r2]");
+    test_decode(0x000019f8, 0xedd21100, "LDFE    F1, [r2]");
+    test_decode(0x000019fc, 0xedd29100, "LDFP    F1, [r2]");
+    test_decode(0x00001a00, 0xed821100, "STFS    F1, [r2]");
+    test_decode(0x00001a04, 0xed1f1101, "LDFS    F1, &00001a08");
+
+    printf("--- LFM/SFM ---\n");
+    test_decode(0x00001af4, 0xedd21200, "LFM     F1, 2, [r2]");
+    test_decode(0x00001af8, 0xedd21201, "LFM     F1, 2, [r2, #4]");
+    test_decode(0x00001afc, 0xed521201, "LFM     F1, 2, [r2, #-4]");
+    test_decode(0x00001b00, 0xedf21201, "LFM     F1, 2, [r2, #4]!");
+    test_decode(0x00001b04, 0xedc21200, "SFM     F1, 2, [r2]");
+
+    printf("--- Binary ops ---\n");
+    test_decode(0x00001b70, 0xee021103, "ADFS    F1, F2, F3");
+    test_decode(0x00001b74, 0xee121103, "MUFS    F1, F2, F3");
+    test_decode(0x00001b78, 0xee221103, "SUFS    F1, F2, F3");
+    test_decode(0x00001b7c, 0xee321103, "RSFS    F1, F2, F3");
+    test_decode(0x00001b80, 0xee421103, "DVFS    F1, F2, F3");
+    test_decode(0x00001b84, 0xee521103, "RDFS    F1, F2, F3");
+    test_decode(0x00001b88, 0xee621103, "POWS    F1, F2, F3");
+    test_decode(0x00001b8c, 0xee721103, "RPWS    F1, F2, F3");
+    test_decode(0x00001b90, 0xee821103, "RMFS    F1, F2, F3");
+    test_decode(0x00001b94, 0xee921103, "FMLS    F1, F2, F3");
+    test_decode(0x00001b98, 0xeea21103, "FDVS    F1, F2, F3");
+    test_decode(0x00001b9c, 0xeeb21103, "FRDS    F1, F2, F3");
+    test_decode(0x00001ba0, 0xeec21103, "POLS    F1, F2, F3");
+
+    printf("--- Unary ops ---\n");
+    test_decode(0x00001e24, 0xee009102, "MVFS    F1, F2");
+    test_decode(0x00001e28, 0xee109102, "MNFS    F1, F2");
+    test_decode(0x00001e2c, 0xee209102, "ABSS    F1, F2");
+    test_decode(0x00001e30, 0xee309102, "RNDS    F1, F2");
+    test_decode(0x00001e34, 0xee409102, "SQTS    F1, F2");
+    test_decode(0x00001e38, 0xee509102, "LOGS    F1, F2");
+    test_decode(0x00001e3c, 0xee609102, "LGNS    F1, F2");
+    test_decode(0x00001e40, 0xee709102, "EXPS    F1, F2");
+    test_decode(0x00001e44, 0xee809102, "SINS    F1, F2");
+    test_decode(0x00001e48, 0xee909102, "COSS    F1, F2");
+    test_decode(0x00001e4c, 0xeea09102, "TANS    F1, F2");
+    test_decode(0x00001e50, 0xeeb09102, "ASNS    F1, F2");
+    test_decode(0x00001e54, 0xeec09102, "ACSS    F1, F2");
+    test_decode(0x00001e58, 0xeed09102, "ATNS    F1, F2");
+    test_decode(0x00001e5c, 0xeee09102, "URDS    F1, F2");
+    test_decode(0x00001e60, 0xeef09102, "NRMS    F1, F2");
+
+    printf("--- Constants ---\n");
+    test_decode(0x00001c18, 0xee021108, "ADFS    F1, F2, #0");
+    test_decode(0x00001c1c, 0xee02110e, "ADFS    F1, F2, #0.5");
+    test_decode(0x00001c20, 0xee021109, "ADFS    F1, F2, #1");
+    test_decode(0x00001c24, 0xee02110a, "ADFS    F1, F2, #2");
+    test_decode(0x00001c28, 0xee02110b, "ADFS    F1, F2, #3");
+    test_decode(0x00001c2c, 0xee02110c, "ADFS    F1, F2, #4");
+    test_decode(0x00001c30, 0xee02110d, "ADFS    F1, F2, #5");
+    test_decode(0x00001c34, 0xee02110f, "ADFS    F1, F2, #10");
+
+    printf("--- Comparisons ---\n");
+    test_decode(0x00002070, 0xee91f112, "CMF     F1, F2");
+    test_decode(0x00002074, 0xeed1f112, "CMFE    F1, F2");
+    test_decode(0x00002078, 0xee91f11e, "CMF     F1, #0.5");
+    test_decode(0x0000207c, 0xeed1f11e, "CMFE    F1, #0.5");
+    test_decode(0x00002080, 0xeeb1f112, "CNF     F1, F2");
+    test_decode(0x00002084, 0xeef1f112, "CNFE    F1, F2");
+    test_decode(0x00002088, 0xeeb1f11e, "CNF     F1, #0.5");
+    test_decode(0x0000208c, 0xeef1f11e, "CNFE    F1, #0.5");
+
+    printf("--- Conversions ---\n");
+    test_decode(0x00001f60, 0xee101111, "FIX     r1, F1");
+    test_decode(0x00001f64, 0xee101131, "FIXP    r1, F1");
+    test_decode(0x00001f68, 0xee101151, "FIXM    r1, F1");
+    test_decode(0x00001f6c, 0xee101171, "FIXZ    r1, F1");
+    test_decode(0x00001f70, 0xee011110, "FLTS    F1, r1");
+    test_decode(0x00001f74, 0xee011130, "FLTSP   F1, r1");
+    test_decode(0x00001f78, 0xee011150, "FLTSM   F1, r1");
+    test_decode(0x00001f7c, 0xee011170, "FLTSZ   F1, r1");
+
+    printf("--- Controls ---\n");
+    test_decode(0x00001ff8, 0xee201110, "WFS     r1");
+    test_decode(0x00001ffc, 0xee301110, "RFS     r1");
+    test_decode(0x00002000, 0xee401110, "WFC     r1");
+    test_decode(0x00002004, 0xee501110, "RFC     r1");
+
+
+    printf("--- Results ---\n");
+    printf("Pass: %i\n", pass);
+    printf("Fail: %i\n", fail);
+    return fail == 0 ? 0 : 1;
+}

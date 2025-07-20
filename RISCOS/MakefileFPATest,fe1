@@ -1,11 +1,11 @@
 #!/usr/bin/env riscos-amu -f
-# Makefile for DisFile
+# Makefile for FPATest
 #
 
 #
 # Program specific options:
 #
-COMPONENT  = DisFile
+COMPONENT  = FPATest
 
 # Specifies additional targets for startup
 #INITTARGET = inittarget
@@ -29,23 +29,18 @@ INCLUDES   = C:DARM
 # Space separated list of defines to set, eg -DDEBUG
 CDEFINES   =
 
+# Allow snprintf to be used
+CLIBTYPE   = generic
+
 # Space separated list of libraries to link against.
 LIBS       = ${CLIB} C:DARM.o.libDARM
 
 # Objects to build, using the format o.<name> (will be varied for build type)
-OBJS       = o.disfile \
-		     o.rodis \
-		     o.fpa \
-		     o.cli-parser \
-		     o.memoryi \
-		     o.introspection \
-		     o.defaultcpuregs
+OBJS       = o.fpa \
+			 o.fpa_test
 
 # Space separated list of XML files for building documentation.
 #DOCSRC = <prm-in-xml-sources>
-
-# Allow snprintf to be used
-CLIBTYPE   = generic
 
 
 include LibraryCommand

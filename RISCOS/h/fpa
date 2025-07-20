@@ -1,0 +1,26 @@
+/*******************************************************************
+ * File:        fpa
+ * Purpose:     Disassembly for the Floating Point Accelerator instructions
+ * Author:      Gerph
+ * Date:        20 Jul 2025
+ ******************************************************************/
+
+#ifndef FPA_H
+#define FPA_H
+
+#include <stdbool.h>
+#include <stdint.h>
+
+
+/*************************************************** Gerph *********
+ Function:      disassemble_fpa
+ Description:   Disassemble a FPA instruction into a string
+ Parameters:    address = the address we're decoding at
+                word = the 32bit ARM word to disassemble
+                buffer-> where to write the disassembly
+                bufferlen = length of the buffer
+ Returns:       true on success, false on failure.
+ ******************************************************************/
+bool disassemble_fpa(uint32_t address, uint32_t word, char *buffer, int bufferlen);
+
+#endif
