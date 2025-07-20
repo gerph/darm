@@ -1,0 +1,58 @@
+/*******************************************************************
+ * File:        fpa_test
+ * Purpose:     Test that the FPA_decoding returns sensible strings
+ * Author:      Gerph
+ * Date:        20 Jul 2025
+ ******************************************************************/
+
+#include <stdio.h>
+#include <string.h>
+
+#include "fpa.h"
+
+int pass = 0;
+int fail = 0;
+
+void test_decode(uint32_t address, uint32_t word, const char *expect)
+{
+    char buffer[256];
+    bool ok;
+
+    printf("Decode %08x : ", word);
+    ok = disassemble_fpa(address, word, buffer, sizeof(buffer));
+    if (!ok)
+    {
+        printf("Failed to decode\n");
+    }
+    else
+    {
+        printf("%-28s : ", buffer);
+        if (strcmp(buffer, expect) == 0)
+        {
+            printf("OK\n");
+            pass++;
+        }
+        else
+        {
+            printf("FAILED (expected: '%s')\n", expect);
+            fail++;
+        }
+    }
+
+}
+
+int main(int argc, char *argv[])
+{
+    test_decode(0x000019e0, 0xed921100, "LDFS    F1, [r2]");
+    test_decode(0x000019e4, 0xed921101, "LDFS    F1, [r2, #4]");
+    test_decode(0x000019e8, 0xed121101, "LDFS    F1, [r2, #-4]");
+    test_decode(0x000019ec, 0xedb21101, "LDFS    F1, [r2, #4]!");
+    test_decode(0x000019f0, 0xecb21101, "LDFS    F1, [r2], #4");
+    test_decode(0x000019f4, 0xed929100, "LDFD    F1, [r2]");
+    test_decode(0x000019f8, 0xedd21100, "LDFE    F1, [r2]");
+    test_decode(0x000019fc, 0xedd29100, "LDFP    F1, [r2]");
+    test_decode(0x00001a00, 0xed821100, "STFS    F1, [r2]");
+    test_decode(0x00001a04, 0xed1f1101, "LDFS    F1, &00001a08");
+
+    return fail == 0 ? 0 : 1;
+}

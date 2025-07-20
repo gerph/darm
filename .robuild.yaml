@@ -29,6 +29,12 @@ jobs:
       - echo *** Build the example
       - amu -f MakefileExample
 
+      - echo *** Build the FPATest tool
+      - amu -f MakefileFPATest
+
+      - echo *** Run the FPATest
+      - /aif32.FPATest
+
       - echo *** Build the DisFile tool
       - amu -f MakefileDisFile
 

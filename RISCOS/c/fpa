@@ -1,0 +1,413 @@
+/*******************************************************************
+ * File:        fpa
+ * Purpose:     Disassembly for the Floating Point Accelerator instructions
+ * Author:      Gerph
+ * Date:        20 Jul 2025
+ ******************************************************************/
+
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdio.h>
+
+#include "darm.h"
+
+#include "fpa.h"
+
+static const char *immediates[] = {
+    "#0", "#1", "#2", "#3", "#4", "#5", "#0.5", "#10"
+};
+
+static const char *fpregs[] = {
+    "F0", "F1", "F2", "F3", "F4", "F5", "F6", "F7"
+};
+
+/*************************************************** Gerph *********
+ Function:      operand_fm
+ Description:   Decode an floating point operand register
+ Parameters:    word = the word to decode
+ Returns:       pointer to the operand string
+ ******************************************************************/
+static const char *operand_fm(uint32_t word)
+{
+    bool immediate = word & 8;
+    int value = (word & 7);
+    if (immediate)
+    {
+        return immediates[value];
+    }
+    else
+    {
+        return fpregs[value];
+    }
+}
+
+
+/*************************************************** Gerph *********
+ Function:      conditioncode
+ Description:   Return the condition code string for a value
+ Parameters:    cc = condition code
+ Returns:       pointer to the condition code string
+ ******************************************************************/
+static const char *conditioncode(uint32_t cc)
+{
+    const char *str = darm_condition_name((darm_cond_t)cc, 1);
+    return str ? str : "";
+}
+
+/*************************************************** Gerph *********
+ Function:      armregname
+ Description:   Return the string for an ARM register
+ Parameters:    armreg = the register to return
+ Returns:       pointer to the arm register string
+ ******************************************************************/
+static const char *armregname(uint32_t armreg)
+{
+    return darm_register_name((darm_reg_t)armreg);
+}
+
+
+/*************************************************** Gerph *********
+ Function:      disassemble_fpa
+ Description:   Disassemble a FPA instruction into a string
+ Parameters:    address = the address we're decoding at
+                word = the 32bit ARM word to disassemble
+                buffer-> where to write the disassembly
+                bufferlen = length of the buffer
+ Returns:       true on success, false on failure.
+ ******************************************************************/
+bool disassemble_fpa(uint32_t address, uint32_t word, char *buffer, int bufferlen)
+{
+    uint32_t opcode = (word>>24) & 15;
+    char *out = buffer;
+    char *end = buffer + bufferlen;
+
+#define ACCUMULATE(c) do { if (out < end) *out++ = (c); else out++; } while (0)
+
+    if ((opcode == 12 || opcode == 13) &&
+        ((word>>8) & 15) == 1)
+    {
+        /* LDF/STF
+         * format is        cccc 110p uywl nnnn xddd 0001 iiii iiii
+         *
+         * <LDF|STF>{cond}<S|D|E|P> Fd,[Rn,#imm]{!}
+         * <LDF|STF>{cond}<S|D|E|P> Fd,[Rn],#imm
+         *
+         * where cccc = condition
+         *          p = Pre-indexing/~Post-indexing
+         *          u = Up/~Down
+         *         yx = transfer length (S,D,E or P)
+         *          w = Writeback
+         *          l = Load/~Store
+         *       nnnn = Rn
+         *        ddd = Fd
+         *   iiiiiiii = 8-bit immediate offset
+         */
+        const char *cc = conditioncode(word >> 28);
+        const char *mnemonic = (word & (1<<20)) ? "LDF" : "STF";
+
+        // Length bits are not contiguous
+        const char length = "SDEP"[((word >> 21) & 2) + ((word >> 15) & 1)];
+        bool preindex = word & (1<<24);
+        bool up = word & (1<<23);
+        uint32_t armreg = (word>>16) & 15;
+        uint32_t fpreg = (word>>12) & 7;
+        int32_t offset = (word & 255) * 4;
+        bool writeback = word & (1<<21);
+
+        if (! up)
+            offset = -offset;
+
+        out += snprintf(out, end - out, "%s%s%c", mnemonic, cc, length);
+        out += snprintf(out, end - out, "%*s", 8 - (out-buffer), "");
+        out += snprintf(out, end - out, "%s, ", fpregs[fpreg]);
+
+        if (preindex)
+        {
+            if (armreg == 15)
+            {
+                out += snprintf(out, end - out, "&%08x", address + 8 + offset);
+            }
+            else
+            {
+                if (offset == 0)
+                {
+                    out += snprintf(out, end - out, "[%s]", armregname(armreg));
+                    if (writeback)
+                        ACCUMULATE('!');
+                }
+                else
+                {
+                    out += snprintf(out, end - out, "[%s, #%i]", armregname(armreg), offset);
+                    if (writeback)
+                        ACCUMULATE('!');
+                }
+            }
+        }
+        else
+        {
+            out += snprintf(out, end - out, "[%s], #%i", armregname(armreg), offset);
+        }
+    }
+    else
+    {
+        return false;
+    }
+    ACCUMULATE('\0');
+    return (out <= end) ? true : false;
+}
+
+
+/*
+
+    def disassemble_fpa_instruction(self, i, mnemonic, op_str):
+        word = struct.unpack('<L', i.bytes)[0]
+
+        opcode = (word>>24) & 15
+
+
+        if opcode in (12, 13) and (word>>8) & 15 == 1:
+            # LDF/STF
+            # format is        cccc 110p uywl nnnn xddd 0001 iiii iiii
+            #
+            # <LDF|STF>{cond}<S|D|E|P> Fd,[Rn,#imm]{!}
+            # <LDF|STF>{cond}<S|D|E|P> Fd,[Rn],#imm
+            #
+            # where cccc = condition
+            #          p = Pre-indexing/~Post-indexing
+            #          u = Up/~Down
+            #         yx = transfer length (S,D,E or P)
+            #          w = Writeback
+            #          l = Load/~Store
+            #       nnnn = Rn
+            #        ddd = Fd
+            #   iiiiiiii = 8-bit immediate offset
+            cc = self.cc_values[word>>28]
+            if cc == 'AL':
+                cc = ''
+            mnemonic = 'LDF' if word & (1<<20) else 'STF'
+            # Length bits are not contiguous
+            length = 'SDEP'[((word >> 21) & 2) + ((word >> 15) & 1)]
+            preindex = word & (1<<24)
+            up = word & (1<<23)
+            armreg = (word>>16) & 15
+            fpreg = (word>>12) & 7
+            offset = (word & 255) * 4
+            if not up:
+                offset = -offset
+            writeback = word & (1<<21)
+            mnemonic = "{}{}{}".format(mnemonic, cc, length)
+            if preindex:
+                if armreg == 15:
+                    access = "&{:08x}".format(i.address + 8 + offset)
+                else:
+                    if offset == 0:
+                        access = "[R{}]{}".format(armreg, "!" if writeback else "")
+                    else:
+                        access = "[R{}, #{}]{}".format(armreg, offset, "!" if writeback else "")
+            else:
+                access = "[R{}], #{}".format(armreg, offset)
+            op_str = "F{}, {}".format(fpreg, access)
+
+        elif opcode in (12, 13) and (word>>8) & 15 == 2:
+            # LFM/SFM
+            # format is        cccc 110p uywl nnnn xddd 0010 iiii iiii
+            #
+            # <LFM|SFM>{cond} Fd,count,[Rn, #imm]{!}
+            # <LFM|SFM>{cond} Fd,count,[Rn],#imm
+            #
+            # where cccc = condition
+            #          p = Pre-indexed/~Post-indexed
+            #          u = Up/~Down
+            #         yx = register count (4,1,2 or 3)
+            #          w = Writeback
+            #          l = Load/~Store
+            #       nnnn = Rn
+            #        ddd = Fd
+            #   iiiiiiii = immediate offset
+            cc = self.cc_values[word>>28]
+            if cc == 'AL':
+                cc = ''
+            mnemonic = 'LFM' if word & (1<<20) else 'SFM'
+            # Count bits are not contiguous
+            count = (((word >> 21) & 2) + ((word >> 15) & 1))
+            preindex = word & (1<<24)
+            up = word & (1<<23)
+            armreg = (word>>16) & 15
+            fpreg = (word>>12) & 7
+            offset = (word & 255) * 4
+            if not up:
+                offset = -offset
+            writeback = word & (1<<21)
+            mnemonic = "{}{}".format(mnemonic, cc)
+            if preindex:
+                if armreg == 15:
+                    access = "&{:08x}".format(i.address + 8 + offset)
+                else:
+                    if offset == 0:
+                        access = "[R{}]{}".format(armreg, "!" if writeback else "")
+                    else:
+                        access = "[R{}, #{}]{}".format(armreg, offset, "!" if writeback else "")
+            else:
+                access = "[R{}], #{}".format(armreg, offset)
+            op_str = "F{}, {}, {}".format(fpreg, count, access)
+
+        elif opcode == 14 and (word>>8) & 15 == 1 and (word>>4) & 1 == 0:
+            # format is        cccc 1110 abcd ennn jddd 0001 fgh0 immm
+            #
+            # <Dyadic op>{cond}<S|D|E>{P|M|Z} Fd,Fn,<Fm|#constant>
+            # <Monadic op>{cond}<S|D|E>{P|M|Z} Fd,<Fm|#constant>
+            #
+            # where cccc = condition
+            #       abcd = opcode
+            #         ef = destination size
+            #         gh = rounding mode
+            #       immm = Fm/constant
+            #        nnn = Fn
+            #        ddd = Fd
+            #          j = Monadic/~Dyadic
+            opcode = (word >> 20) & 15
+            length = "SDEx"[((word>>18) & 2) + ((word>>7) & 1)]
+            # length 3 is invalid
+            rounding = " PMZ"[(word>>5) & 3]
+            # rounding 0 has no symbol?
+            fpregn = (word >> 16) & 7
+            fpregd = (word >> 12) & 7
+            monadic = (word>>15) & 1
+
+            fpdo_mnemonic = {
+                    0: "ADF",   #... binary ops
+                    1: "MUF",
+                    2: "SUF",
+                    3: "RSF",
+                    4: "DVF",
+                    5: "RDF",
+                    6: "POW",
+                    7: "RPW",
+                    8: "RMF",
+                    9: "FML",
+                    10: "FDV",
+                    11: "FRD",
+                    12: "POL",
+                    13: "F0D",  # ... undefined binary ops
+                    14: "F0E",
+                    15: "F0F",
+
+                    16: "MVF",  # ... unary ops
+                    17: "MNF",
+                    18: "ABS",
+                    19: "RND",
+                    20: "SQT",
+                    21: "LOG",
+                    22: "LGN",
+                    23: "EXP",
+                    24: "SIN",
+                    25: "COS",
+                    26: "TAN",
+                    27: "ASN",
+                    28: "ACS",
+                    29: "ATN",
+                    30: "URD",
+                    31: "NRM",
+                }
+
+            cc = self.cc_values[word>>28]
+            if cc == 'AL':
+                cc = ''
+            mnemonic = fpdo_mnemonic[opcode | (monadic<<4)]
+
+            mnemonic = "{}{}{}{}".format(mnemonic, cc, length, rounding)
+
+            operand = operand_fm(word)
+            if monadic:
+                op_str = "F{}, {}".format(fpregd, operand)
+            else:
+                op_str = "F{}, F{}, {}".format(fpregd, fpregn, operand)
+
+        elif opcode == 14 and (word>>8) & 15 == 1 & (word>>4) & 1 == 1:
+            opcode = (word >> 20) & 7
+            status = (word & (9<<20)) == (9<<20)
+            invalid = (word & (9<<20)) == (8<<20)
+            if status:
+                # format is        cccc 1110 1en1 0nnn 1111 0001 0001 immm
+                #
+                # <CMF|CNF>{E}{cond} Fn,Fm
+                # <CMF|CNF>{E}{cond} Fn,#constant
+                #
+                # where cccc = condition
+                #          e = Exception
+                #          n = CNF/~CMF
+                #        nnn = Fn
+                #       immm = Fm/constant
+                excepting = word & (1<<22)
+                negated = word & (1<<21)
+
+                fpregn = (word>>16) & 7
+
+                cc = self.cc_values[word>>28]
+                if cc == 'AL':
+                    cc = ''
+                mnemonic = "{}{}{}".format('CNF' if negated else 'CMF',
+                                           'E' if excepting else '',
+                                           cc)
+                operand = operand_fm(word)
+                op_str = "F{}, {}".format(fpregn, operand)
+            elif invalid:
+                pass
+
+            else:
+                # format is        cccc 1110 abcl ennn dddd 0001 fgh1 0mmm
+                #
+                # FLT{cond}<S|D|E>{P|M|Z} Fn,Rd
+                # FIX{cond}{P|M|Z}        Rd,Fm
+                # <WFS|RFS|WFC|RFC>{cond} Rd
+                #
+                # where cccc = condition
+                #          l = Load/~Store
+                #        abc = operation            abcl         abcl
+                #                                   0000 FLT     0001 FIX
+                #                                   0010 WFS     0011 RFS
+                #                                   0100 WFC     0101 RFC
+                #                                                1xx1 may be compare
+                #         ef = destination size (FLT only)
+                #         gh = rounding mode (FLT and FIX only)
+                #        nnn = Fn (FLT only)
+                #        mmm = Fm (FIX only)
+                #       dddd = Rd
+                length = "SDEx"[((word>>18) & 2) + ((word>>7) & 1)]
+                # length 3 is invalid
+                rounding = " PMZ"[(word>>5) & 3]
+
+                if opcode == 0:
+                    mnemonic = 'FLT'
+                elif opcode == 1:
+                    mnemonic = 'FIX'
+                    length = ''
+                elif opcode > 5:
+                    mnemonic = 'xx{}'.format(opcode)
+                else:
+                    mnemonic = '{}F{}'.format('R' if opcode & 1 else 'W',
+                                              'C' if opcode & 4 else 'S')
+                    length = ''
+                    rounding = ''
+
+                cc = self.cc_values[word>>28]
+                if cc == 'AL':
+                    cc = ''
+                mnemonic = "{}{}{}{}".format(mnemonic, cc, length, rounding)
+
+                armreg = (word>>12) & 15
+
+                if opcode == 0:
+                    fpregn = (word>>16) & 7
+                    op_str = 'F{}, R{}'.format(fpregn, armreg)
+                elif opcode == 1:
+                    fpregm = (word>>0) & 7
+                    op_str = 'R{}, F{}'.format(armreg, fpregm)
+                elif opcode < 6:
+                    op_str = 'R{}'.format(armreg)
+                else:
+                    op_str = ''
+
+        return (mnemonic, op_str, None)
+
+*/
