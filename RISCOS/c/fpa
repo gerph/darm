@@ -292,6 +292,116 @@ bool disassemble_fpa(uint32_t address, uint32_t word, char *buffer, int bufferle
             out += snprintf(out, end - out, "%s, %s, %s", fpregs[fpregd], fpregs[fpregn], operand);
         }
     }
+    else if (opcode == 14 &&
+             ((word>>8) & 15) == 1 &&
+             ((word>>4) & 1) == 1)
+    {
+        uint32_t opcode = (word >> 20) & 7;
+        uint32_t status = (word & (9<<20)) == (9<<20);
+        uint32_t invalid = (word & (9<<20)) == (8<<20);
+        if (status)
+        {
+            /* format is        cccc 1110 1en1 0nnn 1111 0001 0001 immm
+             *
+             * <CMF|CNF>{E}{cond} Fn,Fm
+             * <CMF|CNF>{E}{cond} Fn,#constant
+             *
+             * where cccc = condition
+             *          e = Exception
+             *          n = CNF/~CMF
+             *        nnn = Fn
+             *       immm = Fm/constant
+             */
+            bool excepting = word & (1<<22);
+            bool negated = word & (1<<21);
+            uint32_t fpregn = (word>>16) & 7;
+            const char *cc = conditioncode(word >> 28);
+            const char *mnemonic = negated ? "CNF" : "CMF";
+            const char *excepting_str = excepting ? "E" : "";
+            const char *operand = operand_fm(word);
+
+            out += snprintf(out, end - out, "%s%s%s", mnemonic, excepting_str, cc);
+            out += snprintf(out, end - out, "%*s", 8 - (out-buffer), "");
+            out += snprintf(out, end - out, "%s, %s", fpregs[fpregn], operand);
+        }
+        else if (invalid)
+        {
+            /* We don't decode this invalid sequence */
+            return false;
+        }
+        else
+        {
+            /* format is        cccc 1110 abcl ennn dddd 0001 fgh1 0mmm
+             *
+             * FLT{cond}<S|D|E>{P|M|Z} Fn,Rd
+             * FIX{cond}{P|M|Z}        Rd,Fm
+             * <WFS|RFS|WFC|RFC>{cond} Rd
+             *
+             * where cccc = condition
+             *          l = Load/~Store
+             *        abc = operation            abcl         abcl
+             *                                   0000 FLT     0001 FIX
+             *                                   0010 WFS     0011 RFS
+             *                                   0100 WFC     0101 RFC
+             *                                                1xx1 may be compare
+             *         ef = destination size (FLT only)
+             *         gh = rounding mode (FLT and FIX only)
+             *        nnn = Fn (FLT only)
+             *        mmm = Fm (FIX only)
+             *       dddd = Rd
+             */
+
+            char length = "SDEx"[((word>>18) & 2) + ((word>>7) & 1)];
+            // length 3 is invalid
+            char rounding = " PMZ"[(word>>5) & 3];
+            const char *cc = conditioncode(word >> 28);
+            uint32_t armreg = (word>>12) & 15;
+
+            if (opcode == 0)
+            {
+                out += snprintf(out, end - out, "FLT");
+            }
+            else if (opcode == 1)
+            {
+                out += snprintf(out, end - out, "FIX");
+                length = '\0';
+            }
+            else if (opcode > 5)
+            {
+                out += snprintf(out, end - out, "xx%i", opcode);
+            }
+            else
+            {
+                ACCUMULATE((opcode & 1) ? 'R' : 'W');
+                ACCUMULATE('F');
+                ACCUMULATE((opcode & 4) ? 'C' : 'S');
+                length = '\0';
+                rounding = ' ';
+            }
+
+            out += snprintf(out, end - out, "%s", cc);
+            if (length)
+                ACCUMULATE(length);
+            ACCUMULATE(rounding);
+
+            out += snprintf(out, end - out, "%*s", 8 - (out-buffer), "");
+
+            if (opcode == 0)
+            {
+                uint32_t fpregn = (word>>16) & 7;
+                out += snprintf(out, end - out, "%s, %s", fpregs[fpregn], armregname(armreg));
+            }
+            else if (opcode == 1)
+            {
+                uint32_t fpregm = (word>>0) & 7;
+                out += snprintf(out, end - out, "%s, %s", armregname(armreg), fpregs[fpregm]);
+            }
+            else if (opcode < 6)
+            {
+                out += snprintf(out, end - out, "%s", armregname(armreg));
+            }
+        }
+    }
     else
     {
         return false;
@@ -310,162 +420,7 @@ bool disassemble_fpa(uint32_t address, uint32_t word, char *buffer, int bufferle
 
 
 
-        elif opcode == 14 and (word>>8) & 15 == 1 and (word>>4) & 1 == 0:
-            # format is        cccc 1110 abcd ennn jddd 0001 fgh0 immm
-            #
-            # <Dyadic op>{cond}<S|D|E>{P|M|Z} Fd,Fn,<Fm|#constant>
-            # <Monadic op>{cond}<S|D|E>{P|M|Z} Fd,<Fm|#constant>
-            #
-            # where cccc = condition
-            #       abcd = opcode
-            #         ef = destination size
-            #         gh = rounding mode
-            #       immm = Fm/constant
-            #        nnn = Fn
-            #        ddd = Fd
-            #          j = Monadic/~Dyadic
-            opcode = (word >> 20) & 15
-            length = "SDEx"[((word>>18) & 2) + ((word>>7) & 1)]
-            # length 3 is invalid
-            rounding = " PMZ"[(word>>5) & 3]
-            # rounding 0 has no symbol?
-            fpregn = (word >> 16) & 7
-            fpregd = (word >> 12) & 7
-            monadic = (word>>15) & 1
 
-            fpdo_mnemonic = {
-                    0: "ADF",   #... binary ops
-                    1: "MUF",
-                    2: "SUF",
-                    3: "RSF",
-                    4: "DVF",
-                    5: "RDF",
-                    6: "POW",
-                    7: "RPW",
-                    8: "RMF",
-                    9: "FML",
-                    10: "FDV",
-                    11: "FRD",
-                    12: "POL",
-                    13: "F0D",  # ... undefined binary ops
-                    14: "F0E",
-                    15: "F0F",
-
-                    16: "MVF",  # ... unary ops
-                    17: "MNF",
-                    18: "ABS",
-                    19: "RND",
-                    20: "SQT",
-                    21: "LOG",
-                    22: "LGN",
-                    23: "EXP",
-                    24: "SIN",
-                    25: "COS",
-                    26: "TAN",
-                    27: "ASN",
-                    28: "ACS",
-                    29: "ATN",
-                    30: "URD",
-                    31: "NRM",
-                }
-
-            cc = self.cc_values[word>>28]
-            if cc == 'AL':
-                cc = ''
-            mnemonic = fpdo_mnemonic[opcode | (monadic<<4)]
-
-            mnemonic = "{}{}{}{}".format(mnemonic, cc, length, rounding)
-
-            operand = operand_fm(word)
-            if monadic:
-                op_str = "F{}, {}".format(fpregd, operand)
-            else:
-                op_str = "F{}, F{}, {}".format(fpregd, fpregn, operand)
-
-        elif opcode == 14 and (word>>8) & 15 == 1 & (word>>4) & 1 == 1:
-            opcode = (word >> 20) & 7
-            status = (word & (9<<20)) == (9<<20)
-            invalid = (word & (9<<20)) == (8<<20)
-            if status:
-                # format is        cccc 1110 1en1 0nnn 1111 0001 0001 immm
-                #
-                # <CMF|CNF>{E}{cond} Fn,Fm
-                # <CMF|CNF>{E}{cond} Fn,#constant
-                #
-                # where cccc = condition
-                #          e = Exception
-                #          n = CNF/~CMF
-                #        nnn = Fn
-                #       immm = Fm/constant
-                excepting = word & (1<<22)
-                negated = word & (1<<21)
-
-                fpregn = (word>>16) & 7
-
-                cc = self.cc_values[word>>28]
-                if cc == 'AL':
-                    cc = ''
-                mnemonic = "{}{}{}".format('CNF' if negated else 'CMF',
-                                           'E' if excepting else '',
-                                           cc)
-                operand = operand_fm(word)
-                op_str = "F{}, {}".format(fpregn, operand)
-            elif invalid:
-                pass
-
-            else:
-                # format is        cccc 1110 abcl ennn dddd 0001 fgh1 0mmm
-                #
-                # FLT{cond}<S|D|E>{P|M|Z} Fn,Rd
-                # FIX{cond}{P|M|Z}        Rd,Fm
-                # <WFS|RFS|WFC|RFC>{cond} Rd
-                #
-                # where cccc = condition
-                #          l = Load/~Store
-                #        abc = operation            abcl         abcl
-                #                                   0000 FLT     0001 FIX
-                #                                   0010 WFS     0011 RFS
-                #                                   0100 WFC     0101 RFC
-                #                                                1xx1 may be compare
-                #         ef = destination size (FLT only)
-                #         gh = rounding mode (FLT and FIX only)
-                #        nnn = Fn (FLT only)
-                #        mmm = Fm (FIX only)
-                #       dddd = Rd
-                length = "SDEx"[((word>>18) & 2) + ((word>>7) & 1)]
-                # length 3 is invalid
-                rounding = " PMZ"[(word>>5) & 3]
-
-                if opcode == 0:
-                    mnemonic = 'FLT'
-                elif opcode == 1:
-                    mnemonic = 'FIX'
-                    length = ''
-                elif opcode > 5:
-                    mnemonic = 'xx{}'.format(opcode)
-                else:
-                    mnemonic = '{}F{}'.format('R' if opcode & 1 else 'W',
-                                              'C' if opcode & 4 else 'S')
-                    length = ''
-                    rounding = ''
-
-                cc = self.cc_values[word>>28]
-                if cc == 'AL':
-                    cc = ''
-                mnemonic = "{}{}{}{}".format(mnemonic, cc, length, rounding)
-
-                armreg = (word>>12) & 15
-
-                if opcode == 0:
-                    fpregn = (word>>16) & 7
-                    op_str = 'F{}, R{}'.format(fpregn, armreg)
-                elif opcode == 1:
-                    fpregm = (word>>0) & 7
-                    op_str = 'R{}, F{}'.format(armreg, fpregm)
-                elif opcode < 6:
-                    op_str = 'R{}'.format(armreg)
-                else:
-                    op_str = ''
 
         return (mnemonic, op_str, None)
 
