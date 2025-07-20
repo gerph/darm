@@ -148,6 +148,71 @@ bool disassemble_fpa(uint32_t address, uint32_t word, char *buffer, int bufferle
             out += snprintf(out, end - out, "[%s], #%i", armregname(armreg), offset);
         }
     }
+    else if ((opcode == 12 || opcode == 13) &&
+             ((word>>8) & 15) == 2)
+    {
+        /* LFM/SFM
+         * format is        cccc 110p uywl nnnn xddd 0010 iiii iiii
+         *
+         * <LFM|SFM>{cond} Fd,count,[Rn, #imm]{!}
+         * <LFM|SFM>{cond} Fd,count,[Rn],#imm
+         *
+         * where cccc = condition
+         *          p = Pre-indexed/~Post-indexed
+         *          u = Up/~Down
+         *         yx = register count (4,1,2 or 3)
+         *          w = Writeback
+         *          l = Load/~Store
+         *       nnnn = Rn
+         *        ddd = Fd
+         *   iiiiiiii = immediate offset
+         */
+        const char *cc = conditioncode(word >> 28);
+        const char *mnemonic = (word & (1<<20)) ? "LFM" : "SFM";
+
+        // Count bits are not contiguous
+        int count = (((word >> 21) & 2) + ((word >> 15) & 1));
+        bool preindex = word & (1<<24);
+        bool up = word & (1<<23);
+        uint32_t armreg = (word>>16) & 15;
+        uint32_t fpreg = (word>>12) & 7;
+        int32_t offset = (word & 255) * 4;
+        bool writeback = word & (1<<21);
+
+        if (! up)
+            offset = -offset;
+
+        out += snprintf(out, end - out, "%s%s", mnemonic, cc);
+        out += snprintf(out, end - out, "%*s", 8 - (out-buffer), "");
+        out += snprintf(out, end - out, "%s, %i, ", fpregs[fpreg], count);
+
+        if (preindex)
+        {
+            if (armreg == 15)
+            {
+                out += snprintf(out, end - out, "&%08x", address + 8 + offset);
+            }
+            else
+            {
+                if (offset == 0)
+                {
+                    out += snprintf(out, end - out, "[%s]", armregname(armreg));
+                    if (writeback)
+                        ACCUMULATE('!');
+                }
+                else
+                {
+                    out += snprintf(out, end - out, "[%s, #%i]", armregname(armreg), offset);
+                    if (writeback)
+                        ACCUMULATE('!');
+                }
+            }
+        }
+        else
+        {
+            out += snprintf(out, end - out, "[%s], #%i", armregname(armreg), offset);
+        }
+    }
     else
     {
         return false;
@@ -165,48 +230,6 @@ bool disassemble_fpa(uint32_t address, uint32_t word, char *buffer, int bufferle
         opcode = (word>>24) & 15
 
 
-        if opcode in (12, 13) and (word>>8) & 15 == 1:
-            # LDF/STF
-            # format is        cccc 110p uywl nnnn xddd 0001 iiii iiii
-            #
-            # <LDF|STF>{cond}<S|D|E|P> Fd,[Rn,#imm]{!}
-            # <LDF|STF>{cond}<S|D|E|P> Fd,[Rn],#imm
-            #
-            # where cccc = condition
-            #          p = Pre-indexing/~Post-indexing
-            #          u = Up/~Down
-            #         yx = transfer length (S,D,E or P)
-            #          w = Writeback
-            #          l = Load/~Store
-            #       nnnn = Rn
-            #        ddd = Fd
-            #   iiiiiiii = 8-bit immediate offset
-            cc = self.cc_values[word>>28]
-            if cc == 'AL':
-                cc = ''
-            mnemonic = 'LDF' if word & (1<<20) else 'STF'
-            # Length bits are not contiguous
-            length = 'SDEP'[((word >> 21) & 2) + ((word >> 15) & 1)]
-            preindex = word & (1<<24)
-            up = word & (1<<23)
-            armreg = (word>>16) & 15
-            fpreg = (word>>12) & 7
-            offset = (word & 255) * 4
-            if not up:
-                offset = -offset
-            writeback = word & (1<<21)
-            mnemonic = "{}{}{}".format(mnemonic, cc, length)
-            if preindex:
-                if armreg == 15:
-                    access = "&{:08x}".format(i.address + 8 + offset)
-                else:
-                    if offset == 0:
-                        access = "[R{}]{}".format(armreg, "!" if writeback else "")
-                    else:
-                        access = "[R{}, #{}]{}".format(armreg, offset, "!" if writeback else "")
-            else:
-                access = "[R{}], #{}".format(armreg, offset)
-            op_str = "F{}, {}".format(fpreg, access)
 
         elif opcode in (12, 13) and (word>>8) & 15 == 2:
             # LFM/SFM

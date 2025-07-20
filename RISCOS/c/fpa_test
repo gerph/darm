@@ -43,6 +43,7 @@ void test_decode(uint32_t address, uint32_t word, const char *expect)
 
 int main(int argc, char *argv[])
 {
+    printf("--- LDF/STF ---\n");
     test_decode(0x000019e0, 0xed921100, "LDFS    F1, [r2]");
     test_decode(0x000019e4, 0xed921101, "LDFS    F1, [r2, #4]");
     test_decode(0x000019e8, 0xed121101, "LDFS    F1, [r2, #-4]");
@@ -54,5 +55,15 @@ int main(int argc, char *argv[])
     test_decode(0x00001a00, 0xed821100, "STFS    F1, [r2]");
     test_decode(0x00001a04, 0xed1f1101, "LDFS    F1, &00001a08");
 
+    printf("--- LFM/SFM ---\n");
+    test_decode(0x00001af4, 0xedd21200, "LFM     F1, 2, [r2]");
+    test_decode(0x00001af8, 0xedd21201, "LFM     F1, 2, [r2, #4]");
+    test_decode(0x00001afc, 0xed521201, "LFM     F1, 2, [r2, #-4]");
+    test_decode(0x00001b00, 0xedf21201, "LFM     F1, 2, [r2, #4]!");
+    test_decode(0x00001b04, 0xedc21200, "SFM     F1, 2, [r2]");
+
+    printf("--- Results ---\n");
+    printf("Pass: %i\n", pass);
+    printf("Fail: %i\n", fail);
     return fail == 0 ? 0 : 1;
 }
