@@ -26,6 +26,105 @@ static darm_str_t str;
 #define dprintf if (0) printf
 #endif
 
+typedef enum immtype_e {
+    it_positive,
+    it_negative,
+    it_negated
+} immtype_t;
+
+#define NEW_COMMENT \
+    do { \
+        if (comment == NULL) \
+        { \
+            strcpy(commentbuf, "#"); \
+            comment = commentbuf; \
+            offset = 1; \
+        } \
+        else \
+        { \
+            strcat(comment, " = "); \
+            offset += 3; \
+        } \
+    } while (0)
+
+
+static const char *decode_immediate(uint32_t imm, immtype_t it)
+{
+    static char commentbuf[128];
+    char *comment = NULL;
+    int offset = 0;
+    int shift;
+    if (it == it_negated)
+        imm = ~imm;
+    else if (it == it_negative)
+        imm = -imm;
+
+    if (imm < 0x100)
+    {
+        if (imm >= ' ' && imm <= 0x7f)
+        {
+            NEW_COMMENT;
+            offset += snprintf(&commentbuf[offset], sizeof(commentbuf) - offset, "'%c'", imm);
+        }
+    }
+    else if (imm < 0x1000 && imm > 0x100)
+    {
+        /* Darm will have produced the constant as a decimal; we'll create the hex version */
+        NEW_COMMENT;
+        offset += snprintf(&commentbuf[offset], sizeof(commentbuf) - offset, "&%x", imm);
+    }
+    else
+    {
+        /* Darm will have produced the constant as a hex value; we'll create the decimal one */
+        NEW_COMMENT;
+        if (it == it_positive)
+            offset += snprintf(&commentbuf[offset], sizeof(commentbuf) - offset, "%u", imm);
+        else
+            offset += snprintf(&commentbuf[offset], sizeof(commentbuf) - offset, "%i", imm);
+    }
+
+    if (imm > 256)
+    {
+        for (shift = 4; shift < 32; shift += 4)
+        {
+            uint32_t value = (imm >> shift);
+            if (imm & ((1<<shift)-1))
+                break; /* There is a bit set below our sliding window, so we're done */
+            if (value < 256)
+            {
+                NEW_COMMENT;
+                offset += snprintf(&commentbuf[offset], sizeof(commentbuf) - offset, "%i<<%i", value, shift);
+                break;
+            }
+        }
+    }
+    if (imm > 10 && (imm & (imm-1)) == 0)
+    {
+        /* Only 1 bit is set, so we can try looking for it */
+        uint32_t value = imm;
+        shift = 0;
+        if (value >= (1<<16)) {
+            value = value >> 16, shift += 16;
+        }
+        if (value >= (1<<8)) {
+            value = value >> 8, shift += 8;
+        }
+        if (value >= (1<<4)) {
+            value = value >> 4, shift += 4;
+        }
+        if (value >= (1<<2)) {
+            value = value >> 2, shift += 2;
+        }
+        if (value >= (1<<1)) {
+            value = value >> 1, shift += 1;
+        }
+        NEW_COMMENT;
+        offset += snprintf(&commentbuf[offset], sizeof(commentbuf) - offset, "bit %i", shift);
+    }
+
+    return comment;
+}
+
 
 /*************************************************** Gerph *********
  Function:      lookup_swi
@@ -48,8 +147,7 @@ const char *disassemble_word(uint32_t word, uint32_t address, int thumb)
 {
     bool ok;
     static char buffer[256];
-    static char commentbuf[128];
-    char *comment = NULL;
+    const char *comment = NULL;
 
     ok = disassemble_fpa(address, word, buffer, sizeof(buffer));
     if (ok)
@@ -188,21 +286,6 @@ const char *disassemble_word(uint32_t word, uint32_t address, int thumb)
             }
         }
 
-#define NEW_COMMENT \
-    do { \
-        if (comment == NULL) \
-        { \
-            strcpy(commentbuf, "#"); \
-            comment = commentbuf; \
-            offset = 1; \
-        } \
-        else \
-        { \
-            strcat(comment, " = "); \
-            offset += 3; \
-        } \
-    } while (0)
-
 #define MNEMONIC_MATCH(with) (mnemonic[0] == with[0] && mnemonic[1] == with[1] && mnemonic[2] == with[2])
 
         if ((MNEMONIC_MATCH("MOV") ||
@@ -220,70 +303,12 @@ const char *disassemble_word(uint32_t word, uint32_t address, int thumb)
              MNEMONIC_MATCH("BIC") ||
              MNEMONIC_MATCH("EOR"))
             && strchr(args, '#') != NULL)
-        {
-            int offset = 0;
-            uint32_t imm = d.imm;
-            int shift;
-            if (imm < 0x100)
-            {
-                if (imm >= ' ' && imm <= 0x7f)
-                {
-                    NEW_COMMENT;
-                    offset += snprintf(&commentbuf[offset], sizeof(commentbuf) - offset, "'%c'", imm);
-                }
-            }
-            else if (imm < 0x1000 && imm > 0x100)
-            {
-                /* Darm will have produced the constant as a decimal; we'll create the hex version */
-                NEW_COMMENT;
-                offset += snprintf(&commentbuf[offset], sizeof(commentbuf) - offset, "&%x", imm);
-            }
-            else
-            {
-                /* Darm will have produced the constant as a hex value; we'll create the decimal one */
-                NEW_COMMENT;
-                offset += snprintf(&commentbuf[offset], sizeof(commentbuf) - offset, "%u", imm);
-            }
+            comment = decode_immediate(d.imm, it_positive);
 
-            if (imm > 256)
-            {
-                for (shift = 4; shift < 32; shift += 4)
-                {
-                    uint32_t value = (imm >> shift);
-                    if (imm & ((1<<shift)-1))
-                        break; /* There is a bit set below our sliding window, so we're done */
-                    if (value < 256)
-                    {
-                        NEW_COMMENT;
-                        offset += snprintf(&commentbuf[offset], sizeof(commentbuf) - offset, "%i<<%i", value, shift);
-                        break;
-                    }
-                }
-            }
-            if (imm > 10 && (imm & (imm-1)) == 0)
-            {
-                /* Only 1 bit is set, so we can try looking for it */
-                uint32_t value = imm;
-                shift = 0;
-                if (value >= (1<<16)) {
-                    value = value >> 16, shift += 16;
-                }
-                if (value >= (1<<8)) {
-                    value = value >> 8, shift += 8;
-                }
-                if (value >= (1<<4)) {
-                    value = value >> 4, shift += 4;
-                }
-                if (value >= (1<<2)) {
-                    value = value >> 2, shift += 2;
-                }
-                if (value >= (1<<1)) {
-                    value = value >> 1, shift += 1;
-                }
-                NEW_COMMENT;
-                offset += snprintf(&commentbuf[offset], sizeof(commentbuf) - offset, "bit %i", shift);
-            }
-        }
+        if ((MNEMONIC_MATCH("MVN") ||
+             MNEMONIC_MATCH("CMN"))
+            && strchr(args, '#') != NULL)
+            comment = decode_immediate(d.imm, mnemonic[0] == 'M' ? it_negated : it_negative);
 
         if (comment)
         {
