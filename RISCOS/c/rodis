@@ -303,7 +303,16 @@ const char *disassemble_word(uint32_t word, uint32_t address, int thumb)
              MNEMONIC_MATCH("BIC") ||
              MNEMONIC_MATCH("EOR"))
             && strchr(args, '#') != NULL)
+        {
             comment = decode_immediate(d.imm, it_positive);
+
+            /* Darm produces 'rrx #0' which isn't correct - RRX is encoded as ROR 0. */
+            {
+                char *rrx = strstr(args, "rrx ");
+                if (rrx)
+                    rrx[3] = '\0';
+            }
+        }
 
         if ((MNEMONIC_MATCH("MVN") ||
              MNEMONIC_MATCH("CMN"))
