@@ -4,14 +4,27 @@
 immediates ROUT
         MOV     pc, lr
 
+; simple movs
         MOV     r1, #&650
         MOV     r1, #&2500000
         MOV     r1, #-2
 
+; comparisons
         CMP     r1, #&990
         CMP     r1, #-8
         TST     r1, #1<<24
         TST     r1, #&fc000000
         TEQ     r1, #'A'
+
+; arithmetic operations
+        ADD     r1, r1, #&5000
+        SUB     r1, r1, #4000
+        RSB     r1, r1, #&80000001
+
+; binary operations
+        ORR     r1,r1, #1<<9
+        AND     r1,r1, #&000FF000
+        BIC     r1,r1, #&FF000000
+        EOR     r1,r1, #&f000000f
 
         END
