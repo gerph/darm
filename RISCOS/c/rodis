@@ -188,22 +188,44 @@ const char *disassemble_word(uint32_t word, uint32_t address, int thumb)
             }
         }
 
-        if (mnemonic[0] == 'M' && mnemonic[1] == 'O' && mnemonic[2] == 'V')
+#define NEW_COMMENT \
+    do { \
+        if (comment == NULL) \
+            comment = commentbuf; \
+        else \
+            strcat(comment, ", "); \
+    } while (0)
+
+
+        if (((mnemonic[0] == 'M' && mnemonic[1] == 'O' && mnemonic[2] == 'V') ||
+             (mnemonic[0] == 'C' && mnemonic[1] == 'M' && mnemonic[2] == 'P') ||
+             (mnemonic[0] == 'T' && mnemonic[1] == 'E' && mnemonic[2] == 'Q') ||
+             (mnemonic[0] == 'T' && mnemonic[1] == 'S' && mnemonic[2] == 'T'))
+            && strchr(args, '#') != NULL)
         {
             int offset = 0;
             uint32_t imm = d.imm;
-            if (imm < 0x1000 && imm > 0x100)
+            if (imm < 0x100)
+            {
+                if (imm >= ' ' && imm <= 0x7f)
+                {
+                    NEW_COMMENT;
+                    offset += snprintf(&commentbuf[offset], sizeof(commentbuf) - offset, "= '%c'", imm);
+                }
+            }
+            else if (imm < 0x1000 && imm > 0x100)
             {
                 /* Darm will have produced the constant as a decimal; we'll create the hex version */
+                NEW_COMMENT;
                 offset += snprintf(&commentbuf[offset], sizeof(commentbuf) - offset, "= &%x", imm);
             }
             else
             {
                 /* Darm will have produced the constant as a hex value; we'll create the decimal one */
+                NEW_COMMENT;
                 offset += snprintf(&commentbuf[offset], sizeof(commentbuf) - offset, "= %u", imm);
             }
             //printf("Decoded: imm = &%08x (%i)\n", d.imm, d.imm);
-            comment = commentbuf;
         }
 
         if (comment)
