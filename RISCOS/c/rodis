@@ -212,6 +212,9 @@ const char *disassemble_word(uint32_t word, uint32_t address, int thumb)
              MNEMONIC_MATCH("ADD") ||
              MNEMONIC_MATCH("SUB") ||
              MNEMONIC_MATCH("RSB") ||
+             MNEMONIC_MATCH("ADC") ||
+             MNEMONIC_MATCH("SBC") ||
+             MNEMONIC_MATCH("RSC") ||
              MNEMONIC_MATCH("ORR") ||
              MNEMONIC_MATCH("AND") ||
              MNEMONIC_MATCH("BIC") ||

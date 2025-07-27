@@ -20,6 +20,9 @@ immediates ROUT
         ADD     r1, r1, #&5000
         SUB     r1, r1, #4000
         RSB     r1, r1, #&80000001
+        ADC     r1, r1, #&5000
+        SBC     r1, r1, #4000
+        RSC     r1, r1, #&80000001
 
 ; binary operations
         ORR     r1,r1, #1<<9
