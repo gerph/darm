@@ -204,8 +204,21 @@ const char *disassemble_word(uint32_t word, uint32_t address, int thumb)
         if (args[0] == '#' && args[1] == '+')
         {
             /* This is a PC relative instruction like B/BL/BLX (or conditional variant) */
-            sprintf(newargs, "&%08lx", address + 8 + d.imm);
+            sprintf(newargs, "&%08x", address + (thumb ? 4 : 8) + d.imm);
             args = newargs;
+        }
+        if (strncmp(mnemonic, "cbz", 3) == 0 ||
+            strncmp(mnemonic, "cbnz", 4) == 0)
+        {
+            /* This is a PC relative thumb instruction */
+            char *hashplus;
+            strcpy(newargs, args);
+            args = newargs;
+            hashplus = strstr(newargs, "#+");
+            if (hashplus)
+            {
+                sprintf(hashplus, "&%08x", address + 4 + d.imm);
+            }
         }
         else if (strncmp(mnemonic, "adr", 3) == 0)
         {
@@ -215,7 +228,8 @@ const char *disassemble_word(uint32_t word, uint32_t address, int thumb)
             hashplus = strstr(newargs, "#+");
             if (hashplus)
             {
-                sprintf(hashplus, "&%08lx", d.U ? address + 8 + d.imm : address + 8 - d.imm);
+                sprintf(hashplus, "&%08x", d.U ? address + (thumb ? 4 : 8) + d.imm
+                                               : address + (thumb ? 4 : 8) - d.imm);
             }
             args = newargs;
         }
@@ -229,7 +243,8 @@ const char *disassemble_word(uint32_t word, uint32_t address, int thumb)
             bracketpc = strstr(newargs, "[pc");
             if (bracketpc)
             {
-                sprintf(bracketpc, "&%08lx", d.U ? address + 8 + d.imm : address + 8 - d.imm);
+                sprintf(bracketpc, "&%08lx", d.U ? address + (thumb ? 4 : 8) + d.imm
+                                                 : address + (thumb ? 4 : 8) - d.imm);
             }
             args = newargs;
         }
