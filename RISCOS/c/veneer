@@ -596,3 +596,129 @@ _kernel_oserror *SWI_DisassembleThumb(int number, _kernel_swi_regs *r,
     r->r[2] = strlen(str);
     return NULL;
 }
+
+
+_kernel_oserror *SWI_Flags(int number, _kernel_swi_regs *r, void *pw)
+{
+    uint32_t bic = (uint32_t)r->r[0];
+    uint32_t eor = (uint32_t)r->r[1];
+
+    return err_NotSupportedPlus;
+}
+
+
+_kernel_oserror *SWI_CPU(int number, _kernel_swi_regs *r, void *pw)
+{
+    return err_NotSupportedPlus;
+}
+
+
+_kernel_oserror *SWI_DisassemblePlus(int number, _kernel_swi_regs *r, void *pw)
+{
+    uint32_t word = (uint32_t)r->r[0];
+    uint32_t addr = (uint32_t)r->r[1];
+    uint32_t flags = (uint32_t)r->r[2];
+
+    return err_NotSupportedPlus;
+}
+
+
+/*
+=>
+   R0 = architecture identifier for disassembly, or -1 for current architecture
+
+             Value   Meaning
+              -1      Current architecture
+              0       ARM 32 bit (A32)
+              1       ARM 64 bit (A64)
+              2       x86 64 bit (x86-64)
+              3       Thumb
+              other   Reserved for future expansion
+
+   R1 = pointer to instruction bytes
+   R2 = number of instruction bytes supplied
+   R3 = address to assume the instruction came from
+   R4 = pointer to output buffer, or 0 to use internal buffer
+   R5 = size of output buffer, or 0 to read size required
+   R6 = flags to apply to disassembly (architecture specific), or &FFFFFFFF for default flags
+
+<=
+   R0 = architecture identifier used
+   R1 = pointer to next instruction byte
+   R2 = number of instruction bytes remaining in buffer, or a negative value to indicate the number of bytes that are required
+   R3 preserved
+   R4 = address of buffer containing null-terminated text, in either the supplied or internal buffer
+   R5 = number of bytes remaining in buffer, or negative number of bytes needed if buffer too short
+   R6 = length of disassembled text
+ */
+_kernel_oserror *SWI_DisassembleArch(int number, _kernel_swi_regs *r, void *pw)
+{
+    uint32_t arch = (uint32_t)r->r[0];
+    uint8_t *data = (uint8_t *)r->r[1];
+    uint32_t datalen = (uint32_t)r->r[2];
+    uint32_t addr = (uint32_t)r->r[3];
+    char *output = (char *)r->r[4];
+    uint32_t outputlen = (uint32_t)r->r[5];
+    uint32_t flags = (uint32_t)r->r[6]; /* Not currently used */
+
+    if (arch == -1)
+    {
+#ifdef __riscos64
+        arch = 1;
+#else
+        arch = 0;
+#endif
+        r->r[0] = arch;
+    }
+
+    if (arch == 0 || arch == 3)
+    {
+        /* AArch32 ARM */
+        uint32_t word;
+        const char *str;
+        int wordsize = (arch == 3) ? 2 :4;
+        int needed;
+
+        if (datalen < wordsize)
+        {
+            r->r[2] = -wordsize;
+            return err_BufferOverflow;
+        }
+
+        if (wordsize == 2)
+            word = *(uint16_t*)data;
+        else
+            word = *(uint32_t*)data;
+
+        str = disassemble_word(word, addr, (arch == 3) ? 0 : 1);
+
+        needed = strlen(str) + 1;
+        if (outputlen < needed)
+        {
+            r->r[5] = -needed;
+            return err_BufferOverflow;
+        }
+
+        r->r[1] = (int)data + wordsize;
+        r->r[2] = datalen - wordsize;
+
+        if (output == NULL)
+        {
+            /* They want to use our buffer */
+            r->r[4] = (int)str;
+            r->r[5] = 0;
+        }
+        else
+        {
+            strcpy(output, str);
+            r->r[5] -= needed;
+        }
+
+        r->r[6] = strlen(str);
+        return NULL;
+    }
+    else
+    {
+        return err_UnsupportedArch;
+    }
+}
