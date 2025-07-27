@@ -1,0 +1,17 @@
+
+        AREA    |Test$$Code|, CODE
+
+immediates ROUT
+        MOV     pc, lr
+
+        MOV     r1, #&650
+        MOV     r1, #&2500000
+        MOV     r1, #-2
+
+        CMP     r1, #&990
+        CMP     r1, #-8
+        TST     r1, #1<<24
+        TST     r1, #&fc000000
+        TEQ     r1, #'A'
+
+        END
