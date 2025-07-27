@@ -47,7 +47,9 @@ const char *lookup_swi(uint32_t swinum)
 const char *disassemble_word(uint32_t word, uint32_t address, int thumb)
 {
     bool ok;
-    static char buffer[128];
+    static char buffer[256];
+    static char commentbuf[128];
+    char *comment = NULL;
 
     ok = disassemble_fpa(address, word, buffer, sizeof(buffer));
     if (ok)
@@ -186,7 +188,32 @@ const char *disassemble_word(uint32_t word, uint32_t address, int thumb)
             }
         }
 
-        sprintf(buffer, "%-8s%s", mnemonic, args);
+        if (mnemonic[0] == 'M' && mnemonic[1] == 'O' && mnemonic[2] == 'V')
+        {
+            int offset = 0;
+            uint32_t imm = d.imm;
+            if (imm < 0x1000 && imm > 0x100)
+            {
+                /* Darm will have produced the constant as a decimal; we'll create the hex version */
+                offset += snprintf(&commentbuf[offset], sizeof(commentbuf) - offset, "= &%x", imm);
+            }
+            else
+            {
+                /* Darm will have produced the constant as a hex value; we'll create the decimal one */
+                offset += snprintf(&commentbuf[offset], sizeof(commentbuf) - offset, "= %u", imm);
+            }
+            //printf("Decoded: imm = &%08x (%i)\n", d.imm, d.imm);
+            comment = commentbuf;
+        }
+
+        if (comment)
+        {
+            sprintf(buffer, "%-8s%-24s; %s", mnemonic, args, comment);
+        }
+        else
+        {
+            sprintf(buffer, "%-8s%s", mnemonic, args);
+        }
     }
     else
     {
