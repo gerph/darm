@@ -29,31 +29,14 @@ jobs:
       - echo *** Build the example
       - amu -f MakefileExample
 
-      - echo *** Build the FPATest tool
-      - amu -f MakefileFPATest
-
-      - echo *** Run the FPATest
-      - /aif32.FPATest
-
-      - echo *** Build the DisFile tool
-      - amu -f MakefileDisFile
-
-      - echo *** Build the module
-      - amu -f MakefileModule
+      - echo *** Run the Example code
+      - /aif32.DARM
 
       - echo *** Export the built versions
+      - cat <Exports$Dir>.Lib.DARM
       - cdir ^.Artifacts
-      - copy rm32.Debugger ^.Artifacts.Debugger ~CV~RF
-      - copy aif32.DisFile ^.Artifacts.DisFile ~CV~RF
-
-      - echo *** Load the module to check that it works
-      - RMLoad rm32.Debugger
-
-      - echo *** Exercise *Memory
-      - Memory 8000 +16
-
-      - echo *** Exercise *MemoryI
-      - MemoryI 8000 +16
+      - cdir ^.Artifacts.Lib
+      - copy <Exports$Dir>.Lib.DARM ^.Artifacts.Lib.DARM ~CVRF
 
       - echo *** Simple smoketests complete
 
