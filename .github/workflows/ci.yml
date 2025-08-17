@@ -31,6 +31,11 @@ on:
   #pull_request:
   #  branches: ["*"]
 
+concurrency:
+  # Be nice to the build service and only submit a single job at a time.
+  group: riscos-build-service
+  cancel-in-progress: false
+
 jobs:
   build-riscos:
     # The type of runner that the job will run on
