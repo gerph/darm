@@ -42,7 +42,7 @@ OBJS       = o.armv7 \
 include LibExport
 
 ifeq (${BUILD64},1)
-CFLAGS64   += -O3
+CFLAGS64   += -Os
 endif
 
 # Don't build for 26bit.
