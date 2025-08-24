@@ -41,6 +41,10 @@ OBJS       = o.armv7 \
 
 include LibExport
 
+ifeq (${BUILD64},1)
+CFLAGS64   += -O3
+endif
+
 # Don't build for 26bit.
 export_limited: ${EXPORTS} ${EXPORTHDRS} $(EXPTARGET32) $(EXPTARGET32zm) export_init_dir
 
