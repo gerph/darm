@@ -287,9 +287,18 @@ static int thumb_disasm(darm_t *d, uint16_t w)
         return 0;
 
     case T_THUMB_RW_REG:
-        // TODO write-back support for LDM
         d->reglist = w & BITMSK_8;
         d->Rn = (w >> 8) & b111;
+        if (d->instr == I_LDM)
+        {
+            // https://developer.arm.com/documentation/ddi0403/d/Application-Level-Architecture/Instruction-Details/Alphabetical-list-of-ARMv7-M-Thumb-instructions/LDM--LDMIA--LDMFD?lang=en
+            d->W = ((1<<d->Rn) & d->reglist) == 0;
+        }
+        else
+        {
+            // https://developer.arm.com/documentation/ddi0403/d/Application-Level-Architecture/Instruction-Details/Alphabetical-list-of-ARMv7-M-Thumb-instructions/STM--STMIA--STMEA?lang=en
+            d->W = 1;
+        }
         return 0;
 
     case T_THUMB_REV:

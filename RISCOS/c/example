@@ -24,6 +24,7 @@ int main()
             0x449B, // ADD  r11, r11, r3
             0x4253, // RSBS r3, r2, #0
             0x2413, // MOVS r4, #&13
+            0xC124, // STMIA r1!, {r2, r5}
         };
         int i;
         for (i=0; i<sizeof(insts) / sizeof(insts[0]); i++)
