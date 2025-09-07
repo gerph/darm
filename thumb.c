@@ -75,6 +75,9 @@ static int thumb_disasm(darm_t *d, uint16_t w)
         // actually a mov instruction
         if(d->shift == 0 && d->instr == I_LSL) {
             d->instr = I_MOV;
+            // https://developer.arm.com/documentation/ddi0403/d/Application-Level-Architecture/Instruction-Details/Alphabetical-list-of-ARMv7-M-Thumb-instructions/MOV--register-?lang=en
+            // This encoding always sets the S flag.
+            d->S = B_SET;
         }
         else {
             // set the correct shift-type
@@ -121,6 +124,9 @@ static int thumb_disasm(darm_t *d, uint16_t w)
         case I_ASR: case I_ADC: case I_SBC: case I_ROR:
             d->Rd = d->Rn = w & b111;
             d->Rm = (w >> 3) & b111;
+            // These always have the S bit set in the instruction mnemonic:
+            // https://developer.arm.com/documentation/ddi0403/d/Application-Level-Architecture/Instruction-Details/Alphabetical-list-of-ARMv7-M-Thumb-instructions/EOR--register-?lang=en
+            d->S = B_SET;
             return 0;
 
         case I_TST: case I_CMP: case I_CMN:
@@ -133,6 +139,8 @@ static int thumb_disasm(darm_t *d, uint16_t w)
             d->imm = 0;
             d->Rd = w & b111;
             d->Rn = (w >> 3) & b111;
+            // https://developer.arm.com/documentation/ddi0403/d/Application-Level-Architecture/Instruction-Details/Alphabetical-list-of-ARMv7-M-Thumb-instructions/RSB--immediate-?lang=en
+            d->S = 1;
             return 0;
 
         case I_ORR: case I_BIC:
@@ -143,6 +151,9 @@ static int thumb_disasm(darm_t *d, uint16_t w)
         case I_MVN:
             d->Rd = w & b111;
             d->Rm = (w >> 3) & b111;
+            // These always have the S bit set in the instruction mnemonic:
+            // https://developer.arm.com/documentation/ddi0403/d/Application-Level-Architecture/Instruction-Details/Alphabetical-list-of-ARMv7-M-Thumb-instructions/EOR--register-?lang=en
+            d->S = B_SET;
             return 0;
 
         case I_MUL:
@@ -177,6 +188,9 @@ static int thumb_disasm(darm_t *d, uint16_t w)
         switch ((uint32_t) d->instr) {
         case I_ADD: case I_SUB:
             d->Rd = d->Rn = (w >> 8) & b111;
+            // https://developer.arm.com/documentation/ddi0403/d/Application-Level-Architecture/Instruction-Details/Alphabetical-list-of-ARMv7-M-Thumb-instructions/ADD--register-?lang=en
+            // Always set S for these (both immediate and without)
+            d->S = B_SET;
             return 0;
 
         case I_ADR:
@@ -187,6 +201,8 @@ static int thumb_disasm(darm_t *d, uint16_t w)
 
         case I_MOV:
             d->Rd = (w >> 8) & b111;
+            // https://developer.arm.com/documentation/ddi0403/d/Application-Level-Architecture/Instruction-Details/Alphabetical-list-of-ARMv7-M-Thumb-instructions/MOV--immediate-?lang=en
+            d->S = B_SET;
             return 0;
 
         case I_CMP:
@@ -208,9 +224,12 @@ static int thumb_disasm(darm_t *d, uint16_t w)
         return 0;
 
     case T_THUMB_3REG:
+        // ADDS and SUBS
         d->Rd = (w >> 0) & b111;
         d->Rn = (w >> 3) & b111;
         d->Rm = (w >> 6) & b111;
+        // https://developer.arm.com/documentation/ddi0403/d/Application-Level-Architecture/Instruction-Details/Alphabetical-list-of-ARMv7-M-Thumb-instructions/SUB--register-?lang=en
+        d->S = B_SET;
         return 0;
 
     case T_THUMB_2REG_IMM:
@@ -218,6 +237,8 @@ static int thumb_disasm(darm_t *d, uint16_t w)
         d->Rn = (w >> 3) & b111;
         d->I = B_SET;
         d->imm = (w >> 6) & b111;
+        // https://developer.arm.com/documentation/ddi0403/d/Application-Level-Architecture/Instruction-Details/Alphabetical-list-of-ARMv7-M-Thumb-instructions/SUB--immediate-?lang=en
+        d->S = B_SET;
         return 0;
 
     case T_THUMB_ADD_SP_IMM:

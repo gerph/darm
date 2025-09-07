@@ -11,5 +11,31 @@ int main()
 
         printf("-> %s\n", str.total);
     }
+
+    {
+        uint16_t insts[] = {
+            0x0000, // MOVS r0, r0
+            0x407C, // EORS r4, r7
+            0x431f, // ORRS r7, r3
+            0x372A, // ADDS r7, r7, #42             ; #'*'
+            0x1ACD, // SUBS r5, r1, r3
+            0x1EF4, // SUBS r4, r6, #3
+            0xAD18, // ADD  r5, sp, #96             ; #'`'
+            0x449B, // ADD  r11, r11, r3
+            0x4253, // RSBS r3, r2, #0
+            0x2413, // MOVS r4, #&13
+        };
+        int i;
+        for (i=0; i<sizeof(insts) / sizeof(insts[0]); i++)
+        {
+            uint16_t inst = insts[i];
+            if(darm_thumb_disasm(&d, inst) == 0 &&
+                    darm_str2(&d, &str, 1) == 0) {
+
+                printf("-> %s\n", str.total);
+            }
+        }
+    }
+
     return 0;
 }
