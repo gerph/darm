@@ -1,24 +1,24 @@
-/* Debugger (0.07) 14:39:42 17/8/2025
+/* Debugger (0.08) 16:05:02 14/9/2025
  *
  * This file is automatically maintained by vmanage, do not edit manually.
  *
  */
-#define Module_MajorVersion_CMHG        0.07
+#define Module_MajorVersion_CMHG        0.08
 #define Module_MinorVersion_CMHG        
-#define Module_Date_CMHG                17 Aug 2025
+#define Module_Date_CMHG                14 Sep 2025
 
-#define Module_MajorVersion             "0.07"
-#define Module_Version                  7
+#define Module_MajorVersion             "0.08"
+#define Module_Version                  8
 #define Module_MinorVersion             ""
-#define Module_Date                     "17 Aug 2025"
+#define Module_Date                     "14 Sep 2025"
 
-#define Module_ApplicationDate2         "17-Aug-25"
-#define Module_ApplicationDate4         "17-Aug-2025"
+#define Module_ApplicationDate2         "14-Sep-25"
+#define Module_ApplicationDate4         "14-Sep-2025"
 
 #define Module_ComponentName            "Debugger"
 #define Module_ComponentBranch          ""
 #define Module_ComponentPath            ""
 
-#define Module_FullVersion              "0.07"
-#define Module_FullVersionAndDate       "0.07 (17 Aug 2025)"
-#define Module_HelpVersion              "0.07 (17 Aug 2025)"
+#define Module_FullVersion              "0.08"
+#define Module_FullVersionAndDate       "0.08 (14 Sep 2025)"
+#define Module_HelpVersion              "0.08 (14 Sep 2025)"
