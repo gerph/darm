@@ -12,6 +12,12 @@ int main()
         printf("-> %s\n", str.total);
     }
 
+    if(darm_armv7_disasm(&d, 0xE1A01312) == 0 &&
+            darm_str2(&d, &str, 1) == 0) {
+
+        printf("-> %s\n", str.total);
+    }
+
     {
         uint16_t insts[] = {
             0x0000, // MOVS r0, r0
