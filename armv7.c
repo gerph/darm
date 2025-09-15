@@ -671,13 +671,16 @@ static int armv7_disas_cond(darm_t *d, uint32_t w)
         d->S = (w >> 20) & 1;
         d->Rd = (w >> 12) & b1111;
         d->shift_type = (w >> 5) & b11;
+        //printf("DST_SRC d->S=%i, d->Rd=%i, d->shift_type=%i\n", d->S, d->Rd, d->shift_type);
         if((w >> 4) & 1) {
             d->Rm = (w >> 8) & b1111;
             d->Rn = w & b1111;
+            //printf("w>>4 & 1; d->Rm = %i, d->Rn = %i\n", d->Rm, d->Rn);
         }
         else {
             d->Rm = w & b1111;
             d->shift = (w >> 7) & b11111;
+            //printf("w>>4 & 1 == 0; d->Rm = %i, d->shift = %i\n", d->Rm, d->shift);
 
             // if this is a LSL instruction with a zero shift, then it's
             // actually a MOV instruction (there's no register-shifted LSL)

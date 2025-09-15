@@ -1040,7 +1040,20 @@ if __name__ == '__main__':
     #print('};')
     for index, instr_name in sorted(instr_index_to_name.items()):
         fmtstr_list_for_name = fmtstrs.get(instr_name, [])
-        fmtstr = ', '.join('"%s"' % x for x in set(fmtstr_list_for_name))
+        # Previously this was:
+        #   fmtstr = ', '.join('"%s"' % x for x in set(fmtstr_list_for_name))
+        # Intended to remove the duplicates from the list.
+        # However, this had the side effect of altering the list order, making the
+        # process non-deterministic.
+        # Instead we generate a static list here.
+        unique_list = fmtstr_list_for_name
+        if len(unique_list) != len(set(unique_list)):
+            # We need to produce an list with dupes removed
+            unique_list = []
+            for item in fmtstr_list_for_name:
+                if item not in unique_list:
+                    unique_list.append(item)
+        fmtstr = ', '.join('"%s"' % x for x in unique_list)
         lines.append('    {%s}, /* %s */' % (fmtstr, instr_name))
 
     print('const char *armv7_format_strings[%d][3] = {' % instrcnt)
